@@ -1,0 +1,43 @@
+{
+  "nav": {
+    "dashboard": "డ్యాష్‌బోర్డ్",
+    "listings": "నా జాబితాలు",
+    "orders": "ఆర్డర్లు",
+    "payments": "చెల్లింపులు",
+    "marketplace": "మార్కెట్‌ప్లేస్",
+    "my_orders": "నా ఆర్డర్లు",
+    "logistics": "లాజిస్టిక్స్",
+    "overview": "అవలోకనం",
+    "activity": "కార్యకలాపాలు",
+    "logout": "లాగ్ అవుట్",
+    "farmer_portal": "రైతు పోర్టల్",
+    "buyer_portal": "కొనుగోలుదారు పోర్టల్",
+    "general": "సాధారణ",
+    "management": "నిర్వహణ",
+    "account": "ఖాతా",
+    "commit_funds": "నిధులు జమ చేయండి"
+  },
+  "dashboard": {
+    "welcome": "తిరిగి స్వాగతం",
+    "farmer_sub": "మీ పంట ఫలితాలు ఇస్తోంది. ఒక చూపులో మీ వ్యవసాయ పనితీరు.",
+    "new_listing": "కొత్త జాబితా",
+    "total_earnings": "మొత్తం సంపాదన",
+    "pending_escrow": "పెండింగ్ ఎస్క్రో",
+    "released_funds": "విడుదలైన నిధులు",
+    "active_listings": "క్రియాశీల జాబితాలు",
+    "recent_orders": "ఇటీవలి ఆర్డర్లు",
+    "history": "చరిత్ర",
+    "view_all": "అన్నీ చూడండి",
+    "yield_trend": "దిగుబడి మరియు అమ్మకాల ధోరణి",
+    "weather": "ప్రాంతీయ వాతావరణం",
+    "soil": "నేలలో తేమ",
+    "verified": "ధృవీకరించబడింది"
+  },
+  "ai": {
+    "advisor": "AI సలహాదారు",
+    "insights": "లైవ్ మార్కెట్ విశ్లేషణ",
+    "trust_shield": "AI ట్రస్ట్ షీల్డ్",
+    "analyzing": "రిస్క్ విశ్లేషణ చేస్తోంది...",
+    "verdict": "AI తీర్పు"
+  }
+}

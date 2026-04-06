@@ -1,0 +1,43 @@
+{
+  "nav": {
+    "dashboard": "ડેશબોર્ડ",
+    "listings": "મારી યાદી",
+    "orders": "ઓર્ડર્સ",
+    "payments": "ચુકવણી",
+    "marketplace": "માર્કેટપ્લેસ",
+    "my_orders": "મારા ઓર્ડર્સ",
+    "logistics": "લોજિસ્ટિક્સ",
+    "overview": "ઝાંખી",
+    "activity": "પ્રવૃત્તિ",
+    "logout": "લોગ આઉટ",
+    "farmer_portal": "ખેડૂત પોર્ટલ",
+    "buyer_portal": "ખરીદનાર પોર્ટલ",
+    "general": "સામાન્ય",
+    "management": "મેનેજમેન્ટ",
+    "account": "ખાતું",
+    "commit_funds": "ભંડોળ જમા કરો"
+  },
+  "dashboard": {
+    "welcome": "ફરીથી સ્વાગત છે",
+    "farmer_sub": "તમારી મહેનત ફળ આપી રહી છે. અહીં તમારા ખેતરના પ્રદર્શનની એક ઝલક છે.",
+    "new_listing": "નવી યાદી",
+    "total_earnings": "કુલ કમાણી",
+    "pending_escrow": "બાકી એસ્ક્રો",
+    "released_funds": "મુક્ત થયેલ ભંડોળ",
+    "active_listings": "સક્રિય યાદીઓ",
+    "recent_orders": "તાજેતરના ઓર્ડર્સ",
+    "history": "ઇતિહાસ",
+    "view_all": "બધું જુઓ",
+    "yield_trend": "ઉપજ અને વેચાણ વલણ",
+    "weather": "પ્રાદેશિક હવામાન",
+    "soil": "જમીનમાં ભેજ",
+    "verified": "ચકાસાયેલ"
+  },
+  "ai": {
+    "advisor": "AI સલાહકાર",
+    "insights": "લાઇવ માર્કેટ માહિતી",
+    "trust_shield": "AI ટ્રસ્ટ શીલ્ડ",
+    "analyzing": "જોખમનું વિશ્લેષણ...",
+    "verdict": "AI નિર્ણય"
+  }
+}

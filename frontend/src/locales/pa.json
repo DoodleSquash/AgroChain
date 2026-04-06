@@ -1,0 +1,43 @@
+{
+  "nav": {
+    "dashboard": "ਡੈਸ਼ਬੋਰਡ",
+    "listings": "ਮੇਰੀਆਂ ਲਿਸਟਿੰਗਾਂ",
+    "orders": "ਆਰਡਰ",
+    "payments": "ਭੁਗਤਾਨ",
+    "marketplace": "ਮਾਰਕੀਟਪਲੇਸ",
+    "my_orders": "ਮੇਰੇ ਆਰਡਰ",
+    "logistics": "ਲੌਜਿਸਟਿਕਸ",
+    "overview": "ਸੰਖੇਪ ਜਾਣਕਾਰੀ",
+    "activity": "ਗਤੀਵਿਧੀ",
+    "logout": "ਲੌਗ ਆਉਟ",
+    "farmer_portal": "ਕਿਸਾਨ ਪੋਰਟਲ",
+    "buyer_portal": "ਖਰੀਦਦਾਰ ਪੋਰਟਲ",
+    "general": "ਆਮ",
+    "management": "ਪ੍ਰਬੰਧਨ",
+    "account": "ਖਾਤਾ",
+    "commit_funds": "ਫੰਡ ਜਮ੍ਹਾਂ ਕਰੋ"
+  },
+  "dashboard": {
+    "welcome": "ਜੀ ਆਇਆਂ ਨੂੰ",
+    "farmer_sub": "ਤੁਹਾਡੀ ਮਿਹਨਤ ਦਾ ਫਲ ਮਿਲ ਰਿਹਾ ਹੈ। ਤੁਹਾਡੀ ਖੇਤੀ ਦੀ ਕਾਰਗੁਜ਼ਾਰੀ ਇੱਕ ਨਜ਼ਰ ਵਿੱਚ।",
+    "new_listing": "ਨਵੀਂ ਲਿਸਟਿੰਗ",
+    "total_earnings": "ਕੁੱਲ ਕਮਾਈ",
+    "pending_escrow": "ਬਕਾਇਆ ਐਸਕਰੋ",
+    "released_funds": "ਜਾਰੀ ਕੀਤੇ ਫੰਡ",
+    "active_listings": "ਸਰਗਰਮ ਲਿਸਟਿੰਗਾਂ",
+    "recent_orders": "ਹਾਲੀਆ ਆਰਡਰ",
+    "history": "ਇਤਿਹਾਸ",
+    "view_all": "ਸਭ ਦੇਖੋ",
+    "yield_trend": "ਝਾੜ ਅਤੇ ਵਿਕਰੀ ਦੇ ਰੁਝਾਨ",
+    "weather": "ਖੇਤਰੀ ਮੌਸਮ",
+    "soil": "ਮਿੱਟੀ ਦੀ ਨਮੀ",
+    "verified": "ਤਸਦੀਕਸ਼ੁਦਾ"
+  },
+  "ai": {
+    "advisor": "AI ਸਲਾਹਕਾਰ",
+    "insights": "ਲਾਈਵ ਮਾਰਕੀਟ ਜਾਣਕਾਰੀ",
+    "trust_shield": "AI ਟ੍ਰਸਟ ਸ਼ੀਲਡ",
+    "analyzing": "ਖਤਰੇ ਦਾ ਵਿਸ਼ਲੇਸ਼ਣ ਕਰ ਰਿਹਾ ਹੈ...",
+    "verdict": "AI ਫੈਸਲਾ"
+  }
+}

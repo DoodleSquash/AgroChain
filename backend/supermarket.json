@@ -1,0 +1,499 @@
+{
+	"info": {
+		"_postman_id": "c7a8b32e-5034-4b5b-bfa1-dfcc583cd3d0",
+		"name": "AgroChain Supermarket Dashboard",
+		"description": "API collection for testing the Supermarket / Buyer Dashboard endpoints of AgroChain.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Onboarding & Auth",
+			"item": [
+				{
+					"name": "Buyer Register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Fresh Mart\",\n    \"phone\": \"+919000000000\",\n    \"email\": \"procurement@freshmart.example\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5000/api/supermarket/register",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"api",
+								"supermarket",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Buyer Login (Direct)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"procurement@freshmart.example\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5000/api/supermarket/login",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"api",
+								"supermarket",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verify Buyer OTP",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{buyer_id}}\",\n    \"otp\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5000/api/supermarket/verify-otp",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"api",
+								"supermarket",
+								"verify-otp"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2. Dashboard & Analytics",
+			"item": [
+				{
+					"name": "Get Buyer Dashboard Overview",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5000/api/supermarket/dashboard?buyer_id={{buyer_id}}",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"api",
+								"supermarket",
+								"dashboard"
+							],
+							"query": [
+								{
+									"key": "buyer_id",
+									"value": "{{buyer_id}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Consumer QR Trace Links",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5000/api/supermarket/consumer-qrs?buyer_id={{buyer_id}}",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"api",
+								"supermarket",
+								"consumer-qrs"
+							],
+							"query": [
+								{
+									"key": "buyer_id",
+									"value": "{{buyer_id}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3. Marketplace",
+			"item": [
+				{
+					"name": "Browse Active Batches",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5000/api/supermarket/marketplace?search=Wheat",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"api",
+								"supermarket",
+								"marketplace"
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "Wheat"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Specific Batch Details",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5000/api/supermarket/marketplace/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"api",
+								"supermarket",
+								"marketplace",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{batch_id}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "4. Order Management",
+			"item": [
+				{
+					"name": "Place Order",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"buyer_id\": \"{{buyer_id}}\",\n    \"batch_id\": \"{{batch_id}}\",\n    \"quantity\": 500\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5000/api/supermarket/orders",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"api",
+								"supermarket",
+								"orders"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Review Orders List",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5000/api/supermarket/orders?buyer_id={{buyer_id}}",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"api",
+								"supermarket",
+								"orders"
+							],
+							"query": [
+								{
+									"key": "buyer_id",
+									"value": "{{buyer_id}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Order Detailed View",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5000/api/supermarket/orders/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"api",
+								"supermarket",
+								"orders",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{order_id}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "5. Payments & Escrow",
+			"item": [
+				{
+					"name": "Pay Order / Initialize Escrow",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5000/api/supermarket/orders/:id/pay",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"api",
+								"supermarket",
+								"orders",
+								":id",
+								"pay"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{order_id}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "6. Logistics & Ops",
+			"item": [
+				{
+					"name": "Generate Transporter Token URL",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"type\": \"TRANSPORT\",\n    \"details\": {\n        \"company\": \"FastMove Logistics\",\n        \"contact\": \"transport@fastmove.com\"\n    }\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5000/api/supermarket/orders/:id/logistics",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"api",
+								"supermarket",
+								"orders",
+								":id",
+								"logistics"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{order_id}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "buyer_id",
+			"value": "ENTER_BUYER_UUID_HERE"
+		},
+		{
+			"key": "batch_id",
+			"value": "ENTER_BATCH_UUID_HERE"
+		},
+		{
+			"key": "order_id",
+			"value": "ENTER_ORDER_UUID_HERE"
+		},
+		{
+			"key": "auth_token",
+			"value": "PASTE_JWT_HERE"
+		}
+	]
+}

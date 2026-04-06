@@ -1,0 +1,43 @@
+{
+  "nav": {
+    "dashboard": "ড্যাশবোর্ড",
+    "listings": "আমার তালিকা",
+    "orders": "অর্ডার",
+    "payments": "পেমেন্ট",
+    "marketplace": "মার্কেটপ্লেস",
+    "my_orders": "আমার অর্ডার",
+    "logistics": "লজিস্টিকস",
+    "overview": "সংক্ষিপ্ত বিবরণ",
+    "activity": "কার্যকলাপ",
+    "logout": "লগ আউট",
+    "farmer_portal": "কৃষক পোর্টাল",
+    "buyer_portal": "ক্রেতা পোর্টাল",
+    "general": "সাধারণ",
+    "management": "ব্যবস্থাপনা",
+    "account": "অ্যাকাউন্ট",
+    "commit_funds": "তহবিল জমা দিন"
+  },
+  "dashboard": {
+    "welcome": "স্বাগতম",
+    "farmer_sub": "আপনার পরিশ্রম ফল দিচ্ছে। এক নজরে আপনার খামারের পারফরম্যান্স দেখে নিন।",
+    "new_listing": "নতুন তালিকা",
+    "total_earnings": "মোট আয়",
+    "pending_escrow": "পেন্ডিং এসক্রো",
+    "released_funds": "মুক্ত তহবিল",
+    "active_listings": "সক্রিয় তালিকা",
+    "recent_orders": "সাম্প্রতিক অর্ডার",
+    "history": "ইতিহাস",
+    "view_all": "সব দেখুন",
+    "yield_trend": "ফলন এবং বিক্রয় প্রবণতা",
+    "weather": "আঞ্চলিক আবহাওয়া",
+    "soil": "মাটির আর্দ্রতা",
+    "verified": "যাচাইকৃত"
+  },
+  "ai": {
+    "advisor": "এআই উপদেষ্টা",
+    "insights": "লাইভ মার্কেট ধারণা",
+    "trust_shield": "এআই ট্রাস্ট শিল্ড",
+    "analyzing": "ঝুঁকি বিশ্লেষণ করা হচ্ছে...",
+    "verdict": "এআই রায়"
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "listings": "My Listings",
+    "orders": "Orders",
+    "payments": "Payments",
+    "marketplace": "Marketplace",
+    "my_orders": "My Orders",
+    "logistics": "Logistics",
+    "overview": "Overview",
+    "activity": "Activity",
+    "logout": "Logout",
+    "farmer_portal": "Farmer Portal",
+    "buyer_portal": "Buyer Portal",
+    "general": "General",
+    "management": "Management",
+    "account": "Account",
+    "commit_funds": "Commit Funds"
+  },
+  "dashboard": {
+    "welcome": "Welcome back",
+    "farmer_sub": "Your harvest is yielding results. Here's your farm performance at a glance.",
+    "new_listing": "New Listing",
+    "total_earnings": "Total Earnings",
+    "pending_escrow": "Pending Escrow",
+    "released_funds": "Released Funds",
+    "active_listings": "Active Listings",
+    "recent_orders": "Recent Orders",
+    "history": "History",
+    "view_all": "View All",
+    "yield_trend": "Yield & Sales Trend",
+    "weather": "Regional Weather",
+    "soil": "Soil Moisture",
+    "verified": "Verified"
+  },
+  "ai": {
+    "advisor": "AI Advisor",
+    "insights": "Live Market Insights",
+    "trust_shield": "AI Trust Shield",
+    "analyzing": "Analyzing Risk...",
+    "verdict": "AI Verdict",
+    "scanning": "Scanning",
+    "risk_level": "Risk Level",
+    "status_label": "Status",
+    "ai_verdict": "AI Verdict",
+    "understood": "Understood"
+  },
+  "market": {
+    "browse": "Marketplace",
+    "sub": "Direct access to verified produce. All contracts secured via escrow for guaranteed delivery.",
+    "search": "Search crops, farmers...",
+    "crop_type": "Crop Type",
+    "location": "Location",
+    "price_range": "Price Range",
+    "verified_only": "Verified Only",
+    "secure_asset": "Secure Asset",
+    "escrow_active": "Escrow Protection Active",
+    "escrow_sub": "Funds are held in a secure vault and only released upon your digital quality verification at delivery."
+  },
+  "logistics": {
+    "created": "Order Paid",
+    "out_for_delivery": "Out for Delivery",
+    "picked_up": "Picked Up",
+    "stored": "Stored",
+    "delivered": "Delivered",
+    "delivery_progress": "Delivery Progress",
+    "batch_timeline": "Batch Timeline",
+    "quality_logs": "Quality Logs",
+    "freshness": "Freshness Indicator"
+  }
+}

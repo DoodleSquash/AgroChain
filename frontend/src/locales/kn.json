@@ -1,0 +1,43 @@
+{
+  "nav": {
+    "dashboard": "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
+    "listings": "ನನ್ನ ಪಟ್ಟಿಗಳು",
+    "orders": "ಆರ್ಡರ್‌ಗಳು",
+    "payments": "ಪಾವತಿಗಳು",
+    "marketplace": "ಮಾರುಕಟ್ಟೆ",
+    "my_orders": "ನನ್ನ ಆರ್ಡರ್‌ಗಳು",
+    "logistics": "ಲಾಜಿಸ್ಟಿಕ್ಸ್",
+    "overview": "ಅವಲೋಕನ",
+    "activity": "ಚಟುವಟಿಕೆ",
+    "logout": "ಲಾಗ್ ಔಟ್",
+    "farmer_portal": "ರೈತ ಪೋರ್ಟಲ್",
+    "buyer_portal": "ಖರೀದಿದಾರ ಪೋರ್ಟಲ್",
+    "general": "ಸಾಮಾನ್ಯ",
+    "management": "ನಿರ್ವಹಣೆ",
+    "account": "ಖಾತೆ",
+    "commit_funds": "ಹಣ ಜಮೆ ಮಾಡಿ"
+  },
+  "dashboard": {
+    "welcome": "ಮರಳಿ ಸ್ವಾಗತ",
+    "farmer_sub": "ನಿಮ್ಮ ಕಠಿಣ ಶ್ರಮದ ಫಲ ಸಿಗುತ್ತಿದೆ. ಒಂದು ನೋಟದಲ್ಲಿ ನಿಮ್ಮ ಕೃಷಿ ಸಾಧನೆ.",
+    "new_listing": "ಹೊಸ ಪಟ್ಟಿ",
+    "total_earnings": "ಒಟ್ಟು ಗಳಿಕೆ",
+    "pending_escrow": "ಬಾಕಿ ಇರುವ ಎಸ್ಕ್ರೋ",
+    "released_funds": "ಬಿಡುಗಡೆಯಾದ ಹಣ",
+    "active_listings": "ಸಕ್ರಿಯ ಪಟ್ಟಿಗಳು",
+    "recent_orders": "ಇತ್ತೀಚಿನ ಆರ್ಡರ್‌ಗಳು",
+    "history": "ಇತಿಹಾಸ",
+    "view_all": "ಎಲ್ಲವನ್ನೂ ನೋಡಿ",
+    "yield_trend": "ಇಳುವರಿ ಮತ್ತು ಮಾರಾಟದ ಪ್ರವೃತ್ತಿ",
+    "weather": "ಪ್ರಾದೇಶಿಕ ಹವಾಮಾನ",
+    "soil": "ಮಣ್ಣಿನ ತೇವಾಂಶ",
+    "verified": "ಪರಿಶೀಲಿಸಲಾಗಿದೆ"
+  },
+  "ai": {
+    "advisor": "AI ಸಲಹೆಗಾರ",
+    "insights": "ನೇರ ಮಾರುಕಟ್ಟೆ ಮಾಹಿತಿ",
+    "trust_shield": "AI ಟ್ರಸ್ಟ್ ಶೀಲ್ಡ್",
+    "analyzing": "ಅಪಾಯವನ್ನು ವಿಶ್ಲೇಷಿಸಲಾಗುತ್ತಿದೆ...",
+    "verdict": "AI ತೀರ್ಪು"
+  }
+}

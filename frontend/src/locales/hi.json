@@ -1,0 +1,71 @@
+{
+  "nav": {
+    "dashboard": "डैशबोर्ड",
+    "listings": "मेरी लिस्टिंग",
+    "orders": "ऑर्डर",
+    "payments": "भुगतान",
+    "marketplace": "मार्केटप्लेस",
+    "my_orders": "मेरे ऑर्डर",
+    "logistics": "रसद (लॉजिस्टिक्स)",
+    "overview": "अवलोकन",
+    "activity": "गतिविधि",
+    "logout": "लॉग आउट",
+    "farmer_portal": "किसान पोर्टल",
+    "buyer_portal": "खरीदार पोर्टल",
+    "general": "सामान्य",
+    "management": "प्रबंधन",
+    "account": "खाता",
+    "commit_funds": "फंड जमा करें"
+  },
+  "dashboard": {
+    "welcome": "वापसी पर आपका स्वागत है",
+    "farmer_sub": "आपकी मेहनत रंग ला रही है। यहाँ आपके खेत के प्रदर्शन की एक झलक है।",
+    "new_listing": "नई लिस्टिंग",
+    "total_earnings": "कुल कमाई",
+    "pending_escrow": "लंबित एस्क्रो",
+    "released_funds": "जारी किया गया फंड",
+    "active_listings": "सक्रिय लिस्टिंग",
+    "recent_orders": "हाल के ऑर्डर",
+    "history": "इतिहास",
+    "view_all": "सभी देखें",
+    "yield_trend": "उपज और बिक्री का रुझान",
+    "weather": "क्षेत्रीय मौसम",
+    "soil": "मिट्टी की नमी",
+    "verified": "सत्यापित"
+  },
+  "ai": {
+    "advisor": "एआई सलाहकार",
+    "insights": "लाइव मार्केट अंतर्दृष्टि",
+    "trust_shield": "एआई ट्रस्ट शील्ड",
+    "analyzing": "जोखিম का विश्लेषण...",
+    "verdict": "एआई निर्णय",
+    "scanning": "स्कैनिंग",
+    "risk_level": "जोखिम स्तर",
+    "status_label": "स्थिति",
+    "ai_verdict": "एआई निर्णय",
+    "understood": "समझ गया"
+  },
+  "market": {
+    "browse": "मार्केटप्लेस",
+    "sub": "सत्यापित उत्पादों तक सीधी पहुंच। गारंटीकृत डिलीवरी के लिए सभी अनुबंध एस्क्रो के माध्यम से सुरक्षित हैं।",
+    "search": "फसलें, किसान खोजें...",
+    "crop_type": "फसल का प्रकार",
+    "location": "स्थान",
+    "price_range": "मूल्य सीमा",
+    "verified_only": "केवल सत्यापित",
+    "secure_asset": "एसेट सुरक्षित करें",
+    "escrow_active": "एस्क्रो सुरक्षा सक्रिय",
+    "escrow_sub": "फंड एक सुरक्षित तिजोरी में रखे जाते हैं और डिलीवरी के समय आपके डिजिटल गुणवत्ता सत्यापन के बाद ही जारी किए जाते हैं।"
+  },
+  "logistics": {
+    "created": "आदेश भुगतान",
+    "out_for_delivery": "वितरण के लिए बाहर",
+    "picked_up": "उठाया गया",
+    "stored": "संग्रहित",
+    "delivered": "पहुंचाया गया",
+    "delivery_progress": "वितरण प्रगति",
+    "batch_timeline": "बैच टाइमलाइन",
+    "quality_logs": "गुणवत्ता लॉग",
+    "freshness": "ताजगी सूचक"
+  }
+}

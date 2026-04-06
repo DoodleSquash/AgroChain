@@ -1,0 +1,214 @@
+{
+	"info": {
+		"_postman_id": "8b0821ad-4cf5-4cf5-a8ea-8b4317f22a7f",
+		"name": "AgroChain Logistics (Link-Based)",
+		"description": "API collection mapping the unauthenticated, token-driven workflows for remote transporters and warehouse operators.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Common Links",
+			"item": [
+				{
+					"name": "Get Job Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5000/api/logistics/jobs/:token",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"api",
+								"logistics",
+								"jobs",
+								":token"
+							],
+							"variable": [
+								{
+									"key": "token",
+									"value": "{{job_token}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2. Transport Interactions",
+			"item": [
+				{
+					"name": "Mark Batch Pickup",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"qr_code\": \"VALID_QR_CODE_URL_PASSED_HERE\",\n    \"image_url\": \"https://example.com/truck-loaded-proof.png\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5000/api/logistics/jobs/:token/pickup",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"api",
+								"logistics",
+								"jobs",
+								":token",
+								"pickup"
+							],
+							"variable": [
+								{
+									"key": "token",
+									"value": "{{job_token}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Transporter: Initiate Handover",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"warehouse_email\": \"collector@example.com\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5000/api/logistics/jobs/:token/handoff",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"api",
+								"logistics",
+								"jobs",
+								":token",
+								"handoff"
+							],
+							"variable": [
+								{
+									"key": "token",
+									"value": "{{job_token}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3. Warehouse Interactions",
+			"item": [
+				{
+					"name": "Collector: Confirm Handover (Final Delivery)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"image_url\": \"https://example.com/truck-unloaded-proof.png\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5000/api/logistics/receive/:handoverToken",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"api",
+								"logistics",
+								"receive",
+								":handoverToken"
+							],
+							"variable": [
+								{
+									"key": "handoverToken",
+									"value": "{{handover_token}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Upload Warehouse Detail Logs (Storage)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"weight\": 995.5,\n    \"quality_grade\": \"A+\",\n    \"storage_condition\": \"Cold Storage - 12 degrees Celcius\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5000/api/logistics/jobs/:token/warehouse",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"api",
+								"logistics",
+								"jobs",
+								":token",
+								"warehouse"
+							],
+							"variable": [
+								{
+									"key": "token",
+									"value": "{{job_token}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "job_token",
+			"value": "ENTER_JOB_LINK_TOKEN_HERE"
+		},
+		{
+			"key": "handover_token",
+			"value": "ENTER_HANDOVER_TOKEN_HERE"
+		}
+	]
+}

@@ -1,0 +1,43 @@
+{
+  "nav": {
+    "dashboard": "डॅशबोर्ड",
+    "listings": "माझी उत्पादने",
+    "orders": "ऑर्डर",
+    "payments": "पेमेंट",
+    "marketplace": "मार्केटप्लेस",
+    "my_orders": "माझे ऑर्डर",
+    "logistics": "रसद",
+    "overview": "आढावा",
+    "activity": "कार्यकलाप",
+    "logout": "लॉग आउट",
+    "farmer_portal": "शेतकरी पोर्टल",
+    "buyer_portal": "खरेदीदार पोर्टल",
+    "general": "सामान्य",
+    "management": "व्यवस्थापन",
+    "account": "खाते",
+    "commit_funds": "निधी जमा करा"
+  },
+  "dashboard": {
+    "welcome": "पुन्हा स्वागत",
+    "farmer_sub": "तुमच्या मेहनतीचे फळ मिळत आहे. तुमच्या शेतीची कामगिरी एका नजरेत.",
+    "new_listing": "नवीन नोंदणी",
+    "total_earnings": "एकूण कमाई",
+    "pending_escrow": "लंबित एस्क्रो",
+    "released_funds": "वितरित निधी",
+    "active_listings": "सक्रिय उत्पादने",
+    "recent_orders": "अलीकडील ऑर्डर",
+    "history": "इतिहास",
+    "view_all": "सर्व पहा",
+    "yield_trend": "उपज आणि विक्री कल",
+    "weather": "प्रादेशिक हवामान",
+    "soil": "जमिनीतील ओलावा",
+    "verified": "सत्यापित"
+  },
+  "ai": {
+    "advisor": "एआय सल्लागार",
+    "insights": "थेट बाजार माहिती",
+    "trust_shield": "एआय ट्रस्ट शील्ड",
+    "analyzing": "धोका तपासत आहे...",
+    "verdict": "एआय निकाल"
+  }
+}

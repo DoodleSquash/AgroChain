@@ -1,0 +1,69 @@
+{
+	"info": {
+		"_postman_id": "7f6d5a41-3b2e-4c1d-8f9a-1e2d3c4b5a6b",
+		"name": "AgroChain Public API",
+		"description": "API collection for public, no-auth endpoints like the QR Trace page history.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Public Tracing",
+			"item": [
+				{
+					"name": "Get Full Batch Trace History",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5000/api/public/trace/:batchId",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"api",
+								"public",
+								"trace",
+								":batchId"
+							],
+							"variable": [
+								{
+									"key": "batchId",
+									"value": "{{batch_id}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "batch_id",
+			"value": "ENTER_BATCH_UUID_HERE"
+		}
+	]
+}
