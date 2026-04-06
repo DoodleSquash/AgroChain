@@ -1,31 +1,4 @@
 import { Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import LanguageSwitcher from '../../components/shared/LanguageSwitcher';
-
-const STATE_LANGUAGE_MAP: Record<string, { code: string, native: string }> = {
-  'Maharashtra': { code: 'mr', native: 'मराठी' },
-  'Gujarat': { code: 'gu', native: 'ગુજરાતી' },
-  'Tamil Nadu': { code: 'ta', native: 'தமிழ்' },
-  'West Bengal': { code: 'bn', native: 'বাংলা' },
-  'Karnataka': { code: 'kn', native: 'ಕನ್ನಡ' },
-  'Andhra Pradesh': { code: 'te', native: 'తెలుగు' },
-  'Telangana': { code: 'te', native: 'తెలుగు' },
-  'Kerala': { code: 'ml', native: 'മലയാളം' },
-  'Punjab': { code: 'pa', native: 'ਪੰਜਾਬੀ' },
-  'Odisha': { code: 'or', native: 'ଓଡ଼ିଆ' },
-  'Assam': { code: 'as', native: 'অসমীয়া' },
-  'Uttar Pradesh': { code: 'hi', native: 'हिन्दी' },
-  'Madhya Pradesh': { code: 'hi', native: 'हिन्दी' },
-  'Bihar': { code: 'hi', native: 'हिन्दी' },
-  'Rajasthan': { code: 'hi', native: 'हिन्दी' },
-  'Haryana': { code: 'hi', native: 'हिन्दी' },
-  'Jharkhand': { code: 'hi', native: 'हिन्दी' },
-  'Chhattisgarh': { code: 'hi', native: 'हिन्दी' },
-  'Uttarakhand': { code: 'hi', native: 'हिन्दी' },
-  'Himachal Pradesh': { code: 'hi', native: 'हिन्दी' },
-  'Delhi': { code: 'hi', native: 'हिन्दी' }
-};
 
 const NAV_LINKS = ['How It Works', 'For Farmers', 'For Buyers', 'About'];
 
@@ -58,78 +31,8 @@ const PRODUCTS = [
 ];
 
 export default function Landing() {
-  const { i18n } = useTranslation();
-  const [showLangPopup, setShowLangPopup] = useState(false);
-  const [detectedLang, setDetectedLang] = useState<{code: string, native: string} | null>(null);
-
-  useEffect(() => {
-    const langPromptSeen = localStorage.getItem('langPromptSeen');
-    if (langPromptSeen) return;
-
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(async (position) => {
-        try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${position.coords.latitude}&lon=${position.coords.longitude}&format=json`);
-          const data = await res.json();
-          const state = data.address?.state;
-          if (state && STATE_LANGUAGE_MAP[state]) {
-            setDetectedLang(STATE_LANGUAGE_MAP[state]);
-            setShowLangPopup(true);
-          }
-        } catch (e) {
-          console.log('Location detection failed', e);
-        }
-      });
-    }
-  }, []);
-
-  const acceptLocalLang = () => {
-    if (detectedLang) i18n.changeLanguage(detectedLang.code);
-    localStorage.setItem('langPromptSeen', 'true');
-    setShowLangPopup(false);
-  };
-
-  const declineLocalLang = () => {
-    localStorage.setItem('langPromptSeen', 'true');
-    setShowLangPopup(false);
-  };
-
   return (
-    <div className="font-sans text-gray-900 bg-white overflow-x-hidden relative">
-      {/* LANGUAGE DETECTION POPUP */}
-      {showLangPopup && detectedLang && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white rounded-3xl shadow-2xl overflow-hidden max-w-sm w-full animate-in zoom-in-95 duration-300 relative">
-            <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-primary-400 to-primary-600"></div>
-            <div className="p-6 md:p-8 flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-primary-50 rounded-full flex items-center justify-center mb-5 text-3xl">
-                🌍
-              </div>
-              <h3 className="text-xl font-extrabold text-gray-900 mb-2">Select Your Language</h3>
-              <p className="text-sm text-gray-500 mb-8 max-w-[240px]">
-                We noticed you might be from a region that speaks {detectedLang.native}. How would you like to continue?
-              </p>
-              
-              <div className="w-full space-y-3">
-                <button 
-                  onClick={acceptLocalLang}
-                  className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-sm shadow-primary-600/20 active:scale-[0.98]"
-                >
-                  <span className="text-lg mr-2">{detectedLang.native}</span>
-                  <span className="text-xs font-medium opacity-80">(Local Language)</span>
-                </button>
-                <button 
-                  onClick={declineLocalLang}
-                  className="w-full bg-gray-50 hover:bg-gray-100 text-gray-700 font-bold py-3.5 rounded-xl transition-all border border-gray-200 active:scale-[0.98]"
-                >
-                  Continue in English
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
+    <div className="font-sans text-gray-900 bg-white overflow-x-hidden">
       {/* NAV */}
       <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-8 text-sm">
@@ -144,10 +47,9 @@ export default function Landing() {
               </li>
             ))}
           </ul>
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <LanguageSwitcher />
-            <Link to="/auth" className="px-4 py-2 text-primary-600 font-medium rounded-lg hover:bg-primary-50 transition-colors hidden sm:block">Login</Link>
-            <Link to="/auth" className="px-4 md:px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all shadow-sm shadow-primary-500/20 text-xs md:text-sm">Get Started</Link>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Link to="/auth" className="px-4 py-2 text-primary-600 font-medium rounded-lg hover:bg-primary-50 transition-colors">Login</Link>
+            <Link to="/auth" className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all shadow-sm shadow-primary-500/20">Get Started</Link>
           </div>
         </div>
       </nav>
@@ -171,10 +73,10 @@ export default function Landing() {
             AgroChain connects farmers and supermarkets with escrow payments, QR batch traceability, and link-based logistics — no middlemen, no trust issues.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 mb-12 justify-center lg:justify-start">
-            <Link to="/auth?role=farmer" className="px-8 py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-primary-500/20 active:scale-95 text-center">
+            <Link to="/auth" className="px-8 py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-primary-500/20 active:scale-95 text-center">
               I'm a Farmer →
             </Link>
-            <Link to="/auth?role=buyer" className="px-8 py-3.5 bg-white border-2 border-primary-600 text-primary-600 hover:bg-primary-600 hover:text-white font-semibold rounded-xl transition-all shadow-sm active:scale-95 text-center">
+            <Link to="/auth" className="px-8 py-3.5 bg-white border-2 border-primary-600 text-primary-600 hover:bg-primary-600 hover:text-white font-semibold rounded-xl transition-all shadow-sm active:scale-95 text-center">
               I'm a Buyer →
             </Link>
           </div>
@@ -295,7 +197,7 @@ export default function Landing() {
             <p className="text-lg text-gray-500 leading-relaxed mb-8">
               No more payment delays or middlemen eating your margins. AgroChain locks buyer funds in escrow before your produce moves — you get paid automatically when delivery is confirmed.
             </p>
-            <Link to="/auth?role=farmer" className="inline-block px-7 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all shadow-md active:scale-95 mb-10">
+            <Link to="/auth" className="inline-block px-7 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all shadow-md active:scale-95 mb-10">
               Join as Farmer →
             </Link>
 
@@ -391,7 +293,7 @@ export default function Landing() {
             <p className="text-lg text-gray-500 leading-relaxed mb-8">
               Browse fresh listings from verified farmers, pay securely into escrow, and track your order from farm to shelf — all from one dashboard.
             </p>
-            <Link to="/auth?role=buyer" className="inline-block px-7 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all shadow-md active:scale-95 mb-10">
+            <Link to="/auth" className="inline-block px-7 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all shadow-md active:scale-95 mb-10">
               Join as Buyer →
             </Link>
 

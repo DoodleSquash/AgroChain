@@ -355,9 +355,37 @@ Sections:
 * Quality logs
 * Freshness indicator
 
+
 ---
 
-# 🧱 7. Technical Architecture
+# 🗺️ 7. Route Mapping
+
+### Public & Common
+- `/` → **Landing Page**
+- `/auth` → **Authentication** (Login/Signup)
+
+### Farmer Routes
+- `/farmer/dashboard` → **Dashboard Overview**
+- `/farmer/listings` → **My Listings**
+- `/farmer/listings/new` → **Create Listing**
+- `/farmer/orders` → **Orders Management**
+- `/farmer/payments` → **Payments Dashboard**
+
+### Supermarket Routes
+- `/market/dashboard` → **Dashboard Overview**
+- `/market/browse` → **Marketplace**
+- `/market/batch/:id` → **Batch Details**
+- `/market/checkout` → **Order Placement**
+- `/market/logistics` → **Logistics Control**
+
+### Link-Based (Unauthenticated)
+- `/delivery/:token` → **Transport Job Page**
+- `/warehouse/:token` → **Warehouse Quality Page**
+- `/trace/:batchId` → **Public Product Traceability**
+
+---
+
+# 🧱 8. Technical Architecture
 
 ## 🖥️ Stack
 
@@ -457,7 +485,7 @@ Sections:
 
 ---
 
-# 🔐 7. Security
+# 🔐 9. Security
 
 * JWT auth
 * Token-based links
@@ -465,7 +493,7 @@ Sections:
 
 ---
 
-# 🎨 8. UI Theme & Design System
+# 🎨 10. UI Theme & Design System
 
 ## 🌿 Theme: Modern Agri + Trust
 
