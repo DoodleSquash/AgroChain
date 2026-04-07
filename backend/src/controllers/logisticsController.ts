@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../db';
+import { v4 as uuidv4 } from 'uuid';
+import { sendHandoverQR } from '../utils/mailer';
 
 // 1. Get Job Details securely via Token
 export const getJobDetails = async (req: Request, res: Response): Promise<void> => {

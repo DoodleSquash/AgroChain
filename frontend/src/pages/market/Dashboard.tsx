@@ -1,18 +1,45 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { API, authHeaders } from '../../lib/api';
+
+interface Order {
+  id: string;
+  total_amount: number;
+  status: string;
+  created_at: string;
+  batch: { crop: string; farmer: { name: string } };
+}
 
 export default function MarketDashboard() {
-  const stats = [
-    { label: 'Active Orders', value: '12', change: '+2 this week', icon: 'local_shipping', color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Pending Deliveries', value: '5', change: '3 arriving today', icon: 'inventory_2', color: 'text-amber-600', bg: 'bg-amber-50' },
-    { label: 'Total Spent', value: '₹12.4L', change: '+15% vs last month', icon: 'account_balance_wallet', color: 'text-green-600', bg: 'bg-green-50' },
-    { label: 'Saved via Escrow', value: '₹45K', change: 'Refunded from disputes', icon: 'shield', color: 'text-purple-600', bg: 'bg-purple-50' }
-  ];
+  const [statsData, setStatsData] = useState({ active: '0', pending: '0', spend: '0' });
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const recentOrders = [
-    { id: 'ORD-7721', crop: 'Organic Tomatoes', farmer: 'Ramesh Patel', amount: '₹14,500', status: 'In Transit', date: 'Oct 24, 2026' },
-    { id: 'ORD-7720', crop: 'Premium Wheat', farmer: 'Singh Farms', amount: '₹85,000', status: 'Delivered', date: 'Oct 22, 2026' },
-    { id: 'ORD-7719', crop: 'Red Onions', farmer: 'Kisan Co-op', amount: '₹32,000', status: 'Pending Pickup', date: 'Oct 21, 2026' },
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!user.id) return;
+    
+    Promise.all([
+      fetch(`${API}/supermarket/dashboard?buyer_id=${user.id}`, { headers: authHeaders() as HeadersInit }).then(r => r.json()),
+      fetch(`${API}/supermarket/orders?buyer_id=${user.id}`, { headers: authHeaders() as HeadersInit }).then(r => r.json())
+    ]).then(([dashData, ordersData]) => {
+      setStatsData({
+        active: String(dashData.activeOrders || 0),
+        pending: String(dashData.pendingDeliveries || 0),
+        spend: `₹${(dashData.totalSpend || 0).toLocaleString()}`,
+      });
+      if (Array.isArray(ordersData)) {
+        setOrders(ordersData);
+      }
+      setLoading(false);
+    });
+  }, []);
+
+  const stats = [
+    { label: 'Active Orders', value: statsData.active, change: 'Updated', icon: 'local_shipping', color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'Pending Deliveries', value: statsData.pending, change: 'Updated', icon: 'inventory_2', color: 'text-amber-600', bg: 'bg-amber-50' },
+    { label: 'Total Spent', value: statsData.spend, change: 'Lifetime', icon: 'account_balance_wallet', color: 'text-green-600', bg: 'bg-green-50' },
+    { label: 'Saved via Escrow', value: '₹0', change: 'Refunded from disputes', icon: 'shield', color: 'text-purple-600', bg: 'bg-purple-50' }
   ];
 
   return (
@@ -76,25 +103,29 @@ export default function MarketDashboard() {
             <button className="text-primary-600 hover:text-primary-700 font-bold text-xs sm:text-sm">View All</button>
           </div>
           <div className="flex-1 overflow-y-auto pr-2 space-y-3 sm:space-y-4">
-            {recentOrders.map((order) => (
-              <div key={order.id} className="p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-100 hover:border-primary-100 hover:bg-primary-50/50 transition-colors group cursor-pointer">
+            {loading ? (
+              <div className="text-center text-sm text-gray-500 py-6">Loading orders...</div>
+            ) : orders.length === 0 ? (
+              <div className="text-center text-sm text-gray-500 py-6">No orders found. Place an order to see activity.</div>
+            ) : orders.map((order) => (
+              <Link to={`/market/batch/${order.batch?.id || ''}`} key={order.id} className="block p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-100 hover:border-primary-100 hover:bg-primary-50/50 transition-colors group cursor-pointer">
                 <div className="flex justify-between items-start mb-1 sm:mb-2 gap-2">
-                  <span className="font-bold text-sm sm:text-base text-gray-900 group-hover:text-primary-700 transition-colors line-clamp-1">{order.crop}</span>
-                  <span className="font-extrabold text-sm sm:text-base text-gray-900">{order.amount}</span>
+                  <span className="font-bold text-sm sm:text-base text-gray-900 group-hover:text-primary-700 transition-colors line-clamp-1">{order.batch?.crop}</span>
+                  <span className="font-extrabold text-sm sm:text-base text-gray-900">₹{order.total_amount.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs sm:text-sm">
                   <span className="text-gray-500 flex items-center gap-1 truncate max-w-[120px] sm:max-w-none">
-                    <span className="material-symbols-outlined text-[12px] sm:text-[14px]">person</span> <span className="truncate">{order.farmer}</span>
+                    <span className="material-symbols-outlined text-[12px] sm:text-[14px]">person</span> <span className="truncate">{order.batch?.farmer?.name || 'Unknown'}</span>
                   </span>
                   <span className={`px-2 py-0.5 sm:py-1 rounded-md text-[9px] sm:text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${
-                    order.status === 'Delivered' ? 'bg-green-100 text-green-700' :
-                    order.status === 'In Transit' ? 'bg-blue-100 text-blue-700' :
+                    order.status === 'DELIVERED' ? 'bg-green-100 text-green-700' :
+                    order.status === 'IN_TRANSIT' ? 'bg-blue-100 text-blue-700' :
                     'bg-amber-100 text-amber-700'
                   }`}>
-                    {order.status}
+                    {order.status.replace('_', ' ')}
                   </span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

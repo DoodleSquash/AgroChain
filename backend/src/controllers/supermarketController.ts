@@ -56,6 +56,11 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    if (user.role !== 'BUYER') {
+      res.status(403).json({ error: 'Invalid login: This account does not belong to a Buyer' });
+      return;
+    }
+
     if (!user.is_verified) {
       res.status(401).json({ error: 'User email not verified. Please verify OTP first.' });
       return;
@@ -254,7 +259,7 @@ export const getOrders = async (req: Request, res: Response): Promise<void> => {
     const orders = await prisma.order.findMany({
       where: { buyer_id },
       include: {
-        batch: { select: { crop: true, location: true, images: true } },
+        batch: { select: { id: true, crop: true, location: true, images: true, farmer: { select: { name: true, phone: true } } } },
         escrow_account: { select: { status: true } }
       },
       orderBy: { created_at: 'desc' }

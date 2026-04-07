@@ -22,15 +22,15 @@ router.post('/register', register);
 router.post('/login', login);
 router.post('/verify-otp', verifyOTP);
 
+// Public marketplace browsing (no auth required)
+router.get('/marketplace', getMarketplace);
+router.get('/marketplace/:id', getListingDetails);
+
 // Protected Routes (Requires Auth)
 router.use(authMiddleware);
 
 // Dashboard
 router.get('/dashboard', getDashboard);
-
-// Marketplace (Browsing listings)
-router.get('/marketplace', getMarketplace);
-router.get('/marketplace/:id', getListingDetails);
 
 // Orders
 router.post('/orders', placeOrder);

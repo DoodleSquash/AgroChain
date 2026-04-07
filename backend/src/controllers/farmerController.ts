@@ -57,6 +57,11 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    if (user.role !== 'FARMER') {
+      res.status(403).json({ error: 'Invalid login: This account does not belong to a Farmer' });
+      return;
+    }
+
     if (!user.is_verified) {
       res.status(401).json({ error: 'User email not verified. Please verify OTP first.' });
       return;
@@ -131,8 +136,7 @@ export const createListing = async (req: Request, res: Response): Promise<void> 
   try {
     const { farmer_id, crop, quantity, price_per_unit, harvest_date, expiry_date, location, images } = req.body;
     
-    const qr_code_url = `https://agrochain.app/trace/${Date.now()}`; // Mock QR Code URL
-    
+    // Create batch first to get the real UUID
     const batch = await prisma.batch.create({
       data: {
         farmer_id,
@@ -143,15 +147,23 @@ export const createListing = async (req: Request, res: Response): Promise<void> 
         harvest_date: new Date(harvest_date),
         expiry_date: expiry_date ? new Date(expiry_date) : null,
         location,
-        qr_code_url,
+        qr_code_url: '', // placeholder
         images: {
           create: images?.map((url: string) => ({ image_url: url })) || []
         }
       },
       include: { images: true }
     });
+
+    // Update with real batch ID in QR URL
+    const qr_code_url = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/trace/${batch.id}`;
+    const updated = await prisma.batch.update({
+      where: { id: batch.id },
+      data: { qr_code_url },
+      include: { images: true }
+    });
     
-    res.status(201).json(batch);
+    res.status(201).json(updated);
   } catch (error) {
     res.status(500).json({ error: String(error) });
   }
@@ -182,7 +194,7 @@ export const getListings = async (req: Request, res: Response): Promise<void> =>
 export const updateListing = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = req.params.id as string;
-    const { status, price_per_unit, quantity, location } = req.body;
+    const { status, price_per_unit, quantity, location, new_images } = req.body;
     
     const batch = await prisma.batch.update({
       where: { id },
@@ -191,8 +203,15 @@ export const updateListing = async (req: Request, res: Response): Promise<void> 
         price_per_unit, 
         quantity, 
         location,
-        ...(quantity && price_per_unit && { total_price: quantity * price_per_unit })
-      }
+        ...(quantity && price_per_unit && { total_price: quantity * price_per_unit }),
+        ...(new_images && Array.isArray(new_images) && new_images.length > 0 && {
+          images: {
+            deleteMany: {},
+            create: new_images.map((url: string) => ({ image_url: url }))
+          }
+        })
+      },
+      include: { images: true }
     });
     res.json(batch);
   } catch (error) {
@@ -283,8 +302,14 @@ export const getQR = async (req: Request, res: Response): Promise<void> => {
    try {
      const id = req.params.id as string;
      const batch = await prisma.batch.findUnique({ where: { id }, select: { qr_code_url: true } });
-     if (!batch) { res.status(404).json({ error: 'Batch not found' }); return;  }
-     res.json({ qr_code_url: batch.qr_code_url });
+     if (!batch) { res.status(404).json({ error: 'Batch not found' }); return; }
+
+     const QRCode = await import('qrcode');
+     const traceUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/trace/${id}`;
+
+     // Return as base64 data URL so frontend can display without auth headers
+     const dataUrl = await QRCode.default.toDataURL(traceUrl, { width: 300, margin: 2 });
+     res.json({ qr_data_url: dataUrl, trace_url: traceUrl });
    } catch (error) {
      res.status(500).json({ error: String(error) });
    }

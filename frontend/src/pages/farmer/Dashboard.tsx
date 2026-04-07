@@ -2,6 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 const FarmerDashboard = () => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const userName = user.name || 'Farmer';
   return (
     <div className="p-4 sm:p-6 md:p-10 space-y-8 md:space-y-10 max-w-[1400px] mx-auto">
 
@@ -15,7 +17,7 @@ const FarmerDashboard = () => {
             <div>
               <p className="text-xs font-bold text-primary-600 uppercase tracking-widest">Farmer Portal</p>
               <h1 className="text-3xl font-extrabold font-headline tracking-tight text-on-surface leading-none">
-                Miller Farms
+                {userName}
               </h1>
             </div>
           </div>

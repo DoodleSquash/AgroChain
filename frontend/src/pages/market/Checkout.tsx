@@ -1,18 +1,42 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { apiFetch } from '../../lib/api';
 
 export default function Checkout() {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const handlePayment = () => {
+  // Expect state passed from BatchDetails: { batchId, quantity, totalAmount, crop }
+  const state = location.state as { batchId?: string; quantity?: number; totalAmount?: number; crop?: string } | null;
+
+  const handlePayment = async () => {
     setIsProcessing(true);
-    // Simulate payment flow
-    setTimeout(() => {
-        setIsProcessing(false);
-        navigate('/market/dashboard'); 
-        // In a real app we'd navigate to an order success page or dashboard with a toast
-    }, 2000);
+    setError('');
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const buyer_id = user.id;
+      if (!buyer_id) throw new Error('Please log in to place an order.');
+
+      const batchId   = state?.batchId;
+      const quantity  = state?.quantity || 100;
+      if (!batchId) throw new Error('No batch selected.');
+
+      // 1. Place order
+      const order = await apiFetch<{ id: string }>('/supermarket/orders', {
+        method: 'POST',
+        body: JSON.stringify({ buyer_id, batch_id: batchId, quantity }),
+      });
+
+      // 2. Pay (creates escrow)
+      await apiFetch(`/supermarket/orders/${order.id}/pay`, { method: 'POST' });
+
+      navigate('/market/dashboard');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Payment failed');
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -105,12 +129,13 @@ export default function Checkout() {
                     </div>
                 </div>
 
+                {error && <div className="mb-4 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm font-medium">{error}</div>}
+
                 <button 
                   onClick={handlePayment}
                   disabled={isProcessing}
                   className="relative w-full overflow-hidden bg-primary-600 text-white rounded-xl sm:rounded-2xl py-3.5 sm:py-4 lg:py-5 font-black text-base sm:text-lg shadow-xl shadow-primary-600/30 hover:shadow-2xl transition-all active:scale-[0.98] disabled:opacity-80 disabled:cursor-wait group"
-                >
-                    <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[-20deg] -translate-x-[150%] group-hover:translate-x-[150%] transition-transform duration-1000"></div>
+                >                    <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[-20deg] -translate-x-[150%] group-hover:translate-x-[150%] transition-transform duration-1000"></div>
                     {isProcessing ? (
                         <div className="flex items-center justify-center gap-2 sm:gap-3">
                              <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>

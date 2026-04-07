@@ -24,6 +24,8 @@ export default function DashboardLayout() {
   const location = useLocation();
   const isFarmer = location.pathname.startsWith('/farmer');
   const navItems = isFarmer ? FARMER_NAV : MARKET_NAV;
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const userName = user.name || (isFarmer ? 'Farmer' : 'Buyer');
 
   return (
     <div className="flex flex-col min-h-screen bg-surface-container-low font-body text-on-surface">
@@ -75,9 +77,9 @@ export default function DashboardLayout() {
           </button>
           
           <div className="flex items-center gap-2 cursor-pointer hover:bg-surface-container-low p-1 pr-3 rounded-full transition-colors border border-transparent hover:border-outline-variant/20 group">
-             <img src={`https://ui-avatars.com/api/?name=${isFarmer ? 'Miller+Farms' : 'Fresh+Mart'}&background=16A34A&color=fff&bold=true`} alt="Profile" className="w-8 h-8 md:w-9 md:h-9 rounded-full shadow-sm border border-outline-variant/20" />
+             <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=16A34A&color=fff&bold=true`} alt="Profile" className="w-8 h-8 md:w-9 md:h-9 rounded-full shadow-sm border border-outline-variant/20" />
              <div className="hidden md:flex flex-col">
-               <span className="text-sm font-bold text-on-surface leading-tight group-hover:text-primary-700 transition-colors">{isFarmer ? 'Miller Farms' : 'FreshMart'}</span>
+               <span className="text-sm font-bold text-on-surface leading-tight group-hover:text-primary-700 transition-colors">{userName}</span>
                <span className="text-[10px] text-primary-600 font-bold flex items-center gap-0.5">
                   <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span> Verified
                </span>

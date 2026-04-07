@@ -73,10 +73,10 @@ export default function Landing() {
             AgroChain connects farmers and supermarkets with escrow payments, QR batch traceability, and link-based logistics — no middlemen, no trust issues.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 mb-12 justify-center lg:justify-start">
-            <Link to="/auth" className="px-8 py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-primary-500/20 active:scale-95 text-center">
+            <Link to="/auth?role=farmer" className="px-8 py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-primary-500/20 active:scale-95 text-center">
               I'm a Farmer →
             </Link>
-            <Link to="/auth" className="px-8 py-3.5 bg-white border-2 border-primary-600 text-primary-600 hover:bg-primary-600 hover:text-white font-semibold rounded-xl transition-all shadow-sm active:scale-95 text-center">
+            <Link to="/auth?role=buyer" className="px-8 py-3.5 bg-white border-2 border-primary-600 text-primary-600 hover:bg-primary-600 hover:text-white font-semibold rounded-xl transition-all shadow-sm active:scale-95 text-center">
               I'm a Buyer →
             </Link>
           </div>
@@ -156,7 +156,7 @@ export default function Landing() {
 
       {/* MARKETPLACE OVERVIEW */}
       <section className="py-24 px-6 mx-auto max-w-7xl text-center">
-        <div className="inline-block px-4 py-1 bg-primary-50 text-primary-600 text-xs font-bold tracking-widest uppercase rounded-full mb-6">Marketplace</div>
+        <Link to="/market/browse" className="inline-block px-4 py-1 bg-primary-50 text-primary-600 text-xs font-bold tracking-widest uppercase rounded-full mb-6 hover:bg-primary-100 transition-colors">Marketplace</Link>
         <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 mb-12">Fresh produce, verified at source</h2>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -197,7 +197,7 @@ export default function Landing() {
             <p className="text-lg text-gray-500 leading-relaxed mb-8">
               No more payment delays or middlemen eating your margins. AgroChain locks buyer funds in escrow before your produce moves — you get paid automatically when delivery is confirmed.
             </p>
-            <Link to="/auth" className="inline-block px-7 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all shadow-md active:scale-95 mb-10">
+            <Link to="/auth?role=farmer" className="inline-block px-7 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all shadow-md active:scale-95 mb-10">
               Join as Farmer →
             </Link>
 
@@ -293,7 +293,7 @@ export default function Landing() {
             <p className="text-lg text-gray-500 leading-relaxed mb-8">
               Browse fresh listings from verified farmers, pay securely into escrow, and track your order from farm to shelf — all from one dashboard.
             </p>
-            <Link to="/auth" className="inline-block px-7 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all shadow-md active:scale-95 mb-10">
+            <Link to="/auth?role=buyer" className="inline-block px-7 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all shadow-md active:scale-95 mb-10">
               Join as Buyer →
             </Link>
 
