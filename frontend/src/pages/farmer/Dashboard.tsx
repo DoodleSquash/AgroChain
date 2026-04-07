@@ -1,76 +1,107 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { API } from '../../lib/api';
+import AIPriceAdvisor from '../../components/dashboard/AIPriceAdvisor';
 
 const FarmerDashboard = () => {
+  const { t } = useTranslation();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const userName = user.name || 'Farmer';
+  const userName = user.name || t('nav.farmer_portal');
+
+  const [listings, setListings] = React.useState<any[]>([]);
+  const [loadingListings, setLoadingListings] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchListings = async () => {
+      try {
+        const res = await fetch(`${API}/farmers/batches?farmer_id=${user.id}`);
+        const data = await res.json();
+        setListings(Array.isArray(data) ? data.slice(0, 4) : []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingListings(false);
+      }
+    };
+    if (user.id) fetchListings();
+  }, [user.id, API]);
+
+  const cropImg = (crop: string) => {
+    const c = crop.toLowerCase();
+    if (c.includes('tomato'))  return '/product_tomatoes.png';
+    if (c.includes('tulsi') || c.includes('spinach')) return '/product_tulsi.png';
+    if (c.includes('milk') || c.includes('dairy'))    return '/product_milk.png';
+    if (c.includes('berry') || c.includes('mango'))   return '/product_berries.png';
+    return '/product_tomatoes.png';
+  };
+
   return (
-    <div className="p-4 sm:p-6 md:p-10 space-y-8 md:space-y-10 max-w-[1400px] mx-auto">
+    <div className="p-3 sm:p-6 md:p-10 space-y-6 md:space-y-10 max-w-[1400px] mx-auto">
 
       {/* ── Header ── */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-5">
         <div>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-600 to-primary-800 flex items-center justify-center shadow-lg">
-              <span className="material-symbols-outlined text-white" style={{ fontVariationSettings: "'FILL' 1" }}>eco</span>
+          <div className="flex items-center gap-2.5 mb-2">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-primary-600 to-primary-800 flex items-center justify-center shadow-lg">
+              <span className="material-symbols-outlined text-white text-[20px] sm:text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>eco</span>
             </div>
             <div>
-              <p className="text-xs font-bold text-primary-600 uppercase tracking-widest">Farmer Portal</p>
-              <h1 className="text-3xl font-extrabold font-headline tracking-tight text-on-surface leading-none">
+              <p className="text-[10px] font-bold text-primary-600 uppercase tracking-widest leading-none mb-1">{t('nav.farmer_portal')}</p>
+              <h1 className="text-2xl sm:text-3xl font-extrabold font-headline tracking-tight text-on-surface leading-none">
                 {userName}
               </h1>
             </div>
           </div>
-          <p className="text-on-surface-variant text-base">
-            Welcome back 👋 — Your harvest is yielding results. Here's your farm performance at a glance.
+          <p className="text-on-surface-variant text-sm sm:text-base">
+            {t('dashboard.welcome')} 👋 <span className="hidden xs:inline">— {t('dashboard.farmer_sub')}</span>
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Link
             to="/farmer/listings/new"
-            className="inline-flex items-center gap-2 bg-gradient-to-br from-primary-500 to-primary-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:shadow-primary-600/30 hover:from-primary-400 hover:to-primary-600 transition-all active:scale-95"
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-gradient-to-br from-primary-500 to-primary-700 text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-2xl font-bold shadow-lg hover:shadow-primary-600/30 hover:from-primary-400 hover:to-primary-600 transition-all active:scale-95 text-sm sm:text-base"
           >
-            <span className="material-symbols-outlined text-[20px]">add_circle</span>
-            New Listing
+            <span className="material-symbols-outlined text-[18px] sm:text-[20px]">add_circle</span>
+            {t('dashboard.new_listing')}
           </Link>
-          <button className="p-3 rounded-2xl bg-white border border-outline-variant/20 shadow-sm hover:bg-primary-50 transition-colors text-on-surface-variant">
-            <span className="material-symbols-outlined">tune</span>
+          <button className="p-2.5 sm:p-3 rounded-2xl bg-white border border-outline-variant/20 shadow-sm hover:bg-primary-50 transition-colors text-on-surface-variant">
+            <span className="material-symbols-outlined text-[20px] sm:text-[24px]">tune</span>
           </button>
         </div>
       </div>
 
       {/* ── KPI Stats ── */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[
           {
-            icon: 'payments', label: 'Total Earnings', value: '₹42,850', badge: '+12%', badgeColor: 'text-green-700 bg-green-100',
+            icon: 'payments', label: t('dashboard.total_earnings'), value: '₹42,850', badge: '+12%', badgeColor: 'text-green-700 bg-green-100',
             iconBg: 'bg-primary-50', iconColor: 'text-primary-600',
-            gradient: 'from-primary-600 to-primary-700', isHighlight: true,
           },
           {
-            icon: 'schedule', label: 'Pending Escrow', value: '₹12,400', badge: '4 Batches', badgeColor: 'text-blue-700 bg-blue-100',
+            icon: 'schedule', label: t('dashboard.pending_escrow'), value: '₹12,400', badge: '4 Batches', badgeColor: 'text-blue-700 bg-blue-100',
             iconBg: 'bg-blue-50', iconColor: 'text-blue-600',
           },
           {
-            icon: 'verified', label: 'Released Funds', value: '₹30,450', badge: 'Settled', badgeColor: 'text-emerald-700 bg-emerald-100',
+            icon: 'verified', label: t('dashboard.released_funds'), value: '₹30,450', badge: 'Settled', badgeColor: 'text-emerald-700 bg-emerald-100',
             iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600',
           },
           {
-            icon: 'storefront', label: 'Active Listings', value: '8', badge: '2 New', badgeColor: 'text-violet-700 bg-violet-100',
+            icon: 'storefront', label: t('dashboard.active_listings'), value: listings.length.toString(), badge: 'Real-time', badgeColor: 'text-violet-700 bg-violet-100',
             iconBg: 'bg-violet-50', iconColor: 'text-violet-600',
           },
         ].map((stat, i) => (
-          <div key={i} className={`group relative p-6 rounded-3xl shadow-sm border border-outline-variant/10 bg-surface-container-lowest hover:shadow-md transition-all duration-300 overflow-hidden`}>
+          <div key={i} className={`group relative p-4 sm:p-6 rounded-3xl shadow-sm border border-outline-variant/10 bg-surface-container-lowest hover:shadow-md transition-all duration-300 overflow-hidden`}>
             {/* Decorative blob */}
-            <div className="absolute -right-6 -top-6 w-20 h-20 rounded-full bg-gradient-to-br from-primary-50 to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
-            <div className="flex justify-between items-start mb-4">
-              <div className={`w-11 h-11 rounded-2xl ${stat.iconBg} flex items-center justify-center`}>
-                <span className={`material-symbols-outlined ${stat.iconColor}`} style={{ fontVariationSettings: "'FILL' 1" }}>{stat.icon}</span>
+            <div className="absolute -right-6 -top-6 w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-primary-50 to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
+            <div className="flex justify-between items-start mb-3 sm:mb-4">
+              <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl ${stat.iconBg} flex items-center justify-center`}>
+                <span className={`material-symbols-outlined text-[20px] sm:text-[24px] ${stat.iconColor}`} style={{ fontVariationSettings: "'FILL' 1" }}>{stat.icon}</span>
               </div>
-              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${stat.badgeColor}`}>{stat.badge}</span>
+              <span className={`text-[9px] sm:text-xs font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full ${stat.badgeColor}`}>{stat.badge}</span>
             </div>
-            <p className="text-on-surface-variant text-sm font-medium">{stat.label}</p>
-            <p className="text-2xl font-extrabold font-headline text-on-surface mt-1">{stat.value}</p>
+            <p className="text-on-surface-variant text-[11px] sm:text-sm font-medium truncate">{stat.label}</p>
+            <p className="text-xl sm:text-2xl font-extrabold font-headline text-on-surface mt-0.5 sm:mt-1">{stat.value}</p>
           </div>
         ))}
       </section>
@@ -78,125 +109,142 @@ const FarmerDashboard = () => {
       {/* ── Main Grid ── */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
 
-        {/* ── Active Listings ── */}
-        <section className="xl:col-span-7 space-y-5">
+        {/* ── Left Column ── */}
+        <section className="xl:col-span-7 space-y-6">
+          
+          {/* Active Listings Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold font-headline text-on-surface">Active Listings</h2>
-              <p className="text-xs text-on-surface-variant mt-0.5">8 live batches on marketplace</p>
+              <h2 className="text-xl font-bold font-headline text-on-surface">{t('dashboard.active_listings')}</h2>
+              <p className="text-xs text-on-surface-variant mt-0.5">{listings.length} {t('dashboard.farmer_sub')}</p>
             </div>
             <Link to="/farmer/listings" className="text-sm font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1">
-              View All <span className="material-symbols-outlined text-sm">arrow_forward</span>
+              {t('dashboard.view_all')} <span className="material-symbols-outlined text-sm">arrow_forward</span>
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {[
-              {
-                name: 'Organic Heritage Carrots', qty: '500 kg', price: '₹2.50/kg', status: 'Live',
-                progress: 75, views: 124, orders: 3,
-                img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDADUPKZm82mq0BK-JRDilcM5teN2pGng4pqrSBKvAVioPsvbCESgMip-w5ix-UMw9U24u0-b_mMDdE7cO-XH4mvXYztH2P1FmzOYv_uO5dvV3u-EY0eiqqGuagBnQ1toaFP8tL6AhWMgRa33EwmDgb0ZTSGzAxHoXGQF8gxEP09R2UqXhUcIpbgENUCjQFrR8xcjFB-0-7-0Q6yzc25rvlUAtLa0s4OegRs_edAQQNlR2irwkJb_bX5RS3QL0jrlottbnMbA_29Q',
-                harvest: '2 Apr 2026', expire: '10 Apr 2026',
-              },
-              {
-                name: 'Premium Russet Potatoes', qty: '1.2 Tons', price: '₹1.10/kg', status: 'Live',
-                progress: 50, views: 89, orders: 1,
-                img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBYNDT4qNHZ6AoVNVjXiOpPRuzvlwmtzHrChtLVX1G87jdqSrZcMAvYzmHyjqRwmhF0Qf3aWC63_jYLiJ1AHMlveM6lNychkDg2fde4sCmEQxU0FPChkZ_Vt2cdDT2XWSdO83UU6YnytsYp9IHJeTRZ85msrIrXf4Zyl6dmGa0GUTy8AX5_uB0QDIHiFWFtRk7ioHoHmi7fagQHC2jJ0jfiFS2PBbXJtHZBM2eFp8qIZ138a2R_ArRXxMz-uFD_yhjPI9PLZ_iGcA',
-                harvest: '28 Mar 2026', expire: '15 Apr 2026',
-              },
-            ].map((item, i) => (
-              <div key={i} className="group bg-surface-container-lowest rounded-3xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-outline-variant/10">
-                <div className="h-44 overflow-hidden relative">
-                  <img
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    alt={item.name}
-                    src={item.img}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                  <div className="absolute top-3 left-3">
-                    <span className="bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse inline-block" />{item.status}
-                    </span>
-                  </div>
-                  <div className="absolute bottom-3 left-3 right-3 flex justify-between items-end">
-                    <p className="text-white font-bold text-base leading-tight drop-shadow">{item.name}</p>
-                    <span className="bg-black/40 backdrop-blur-sm text-white text-xs font-bold px-2 py-1 rounded-xl">{item.price}</span>
-                  </div>
-                </div>
-                <div className="p-5 space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="flex items-center gap-1 text-on-surface-variant">
-                      <span className="material-symbols-outlined text-[14px]">inventory_2</span>{item.qty}
-                    </span>
-                    <div className="flex items-center gap-3">
-                      <span className="flex items-center gap-1 text-on-surface-variant text-xs">
-                        <span className="material-symbols-outlined text-[14px]">visibility</span>{item.views}
-                      </span>
-                      <span className="flex items-center gap-1 text-primary-600 text-xs font-bold">
-                        <span className="material-symbols-outlined text-[14px]">shopping_bag</span>{item.orders} orders
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-balance	">
+            {loadingListings ? (
+              [1, 2].map(i => <div key={i} className="h-64 bg-surface-container-low rounded-3xl animate-pulse" />)
+            ) : (
+              listings.map((item, i) => (
+                <div key={i} className="group bg-surface-container-lowest rounded-3xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-outline-variant/10">
+                  <div className="h-44 overflow-hidden relative">
+                    <img
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                      alt={item.crop}
+                      src={item.images?.[0]?.image_url || cropImg(item.crop)}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                    <div className="absolute top-3 left-3">
+                      <span className="bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse inline-block" />{item.status}
                       </span>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs text-on-surface-variant">
-                    <span className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[13px] text-green-600">agriculture</span>Harvested: {item.harvest}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[13px] text-amber-500">timer</span>Expires: {item.expire}
-                    </span>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-xs text-on-surface-variant mb-1">
-                      <span>Quantity sold</span>
-                      <span className="font-bold text-primary-600">{item.progress}%</span>
-                    </div>
-                    <div className="w-full bg-primary-50 h-2 rounded-full overflow-hidden">
-                      <div className="bg-gradient-to-r from-primary-500 to-primary-700 h-full rounded-full transition-all" style={{ width: `${item.progress}%` }} />
+                    <div className="absolute bottom-3 left-3 right-3 flex justify-between items-end">
+                      <p className="text-white font-bold text-base leading-tight drop-shadow">{item.crop}</p>
+                      <span className="bg-black/40 backdrop-blur-sm text-white text-xs font-bold px-2 py-1 rounded-xl">₹{item.price_per_unit}/kg</span>
                     </div>
                   </div>
-                  <div className="flex gap-2 pt-1">
-                    <button className="flex-1 text-xs font-bold py-2 rounded-xl border border-outline-variant/30 text-on-surface-variant hover:bg-primary-50 hover:text-primary-700 hover:border-primary-200 transition-all">
-                      <span className="material-symbols-outlined text-[14px] align-middle mr-1">edit</span>Edit
-                    </button>
-                    <button className="flex-1 text-xs font-bold py-2 rounded-xl bg-primary-50 text-primary-700 hover:bg-primary-100 transition-all">
-                      <span className="material-symbols-outlined text-[14px] align-middle mr-1">qr_code</span>QR Code
-                    </button>
+                  <div className="p-5 space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="flex items-center gap-1 text-on-surface-variant">
+                        <span className="material-symbols-outlined text-[14px]">inventory_2</span>{item.quantity} kg
+                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="flex items-center gap-1 text-on-surface-variant text-xs">
+                          <span className="material-symbols-outlined text-[14px]">visibility</span>{Math.floor(Math.random() * 100)}
+                        </span>
+                        <span className="flex items-center gap-1 text-primary-600 text-xs font-bold">
+                          <span className="material-symbols-outlined text-[14px]">shopping_bag</span>{Math.floor(Math.random() * 5)} orders
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <Link to="/farmer/listings" className="flex-1 text-center text-xs font-bold py-2 rounded-xl border border-outline-variant/30 text-on-surface-variant hover:bg-primary-50 hover:text-primary-700 transition-all">
+                        Manage
+                      </Link>
+                      <button className="flex-1 text-xs font-bold py-2 rounded-xl bg-primary-50 text-primary-700 hover:bg-primary-100 transition-all">
+                        QR Code
+                      </button>
+                    </div>
                   </div>
                 </div>
+              ))
+            )}
+            {listings.length === 0 && !loadingListings && (
+              <div className="col-span-2 p-10 bg-surface-container-low rounded-3xl text-center border-2 border-dashed border-outline-variant/20">
+                 <span className="material-symbols-outlined text-4xl text-on-surface-variant/30">inventory_2</span>
+                 <p className="text-on-surface-variant font-bold mt-2">No active listings. Create one to start selling!</p>
               </div>
-            ))}
+            )}
           </div>
 
-          {/* Quick Stats Row */}
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { label: 'Avg. Order Value', value: '₹8,200', icon: 'trending_up', color: 'text-green-600 bg-green-50' },
-              { label: 'Repeat Buyers', value: '67%', icon: 'people', color: 'text-blue-600 bg-blue-50' },
-              { label: 'Trust Score', value: '4.9 ★', icon: 'verified_user', color: 'text-amber-600 bg-amber-50' },
-            ].map((s, i) => (
-              <div key={i} className="bg-surface-container-lowest border border-outline-variant/10 rounded-2xl p-4 text-center shadow-sm">
-                <div className={`w-9 h-9 rounded-xl ${s.color} flex items-center justify-center mx-auto mb-2`}>
-                  <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>{s.icon}</span>
+          {/* 🧩 NEW: Sales Performance Chart (Visual Filler) */}
+          <div className="bg-surface-container-lowest border border-outline-variant/10 rounded-[2.5rem] p-6 shadow-sm overflow-hidden">
+             <div className="flex items-center justify-between mb-6">
+                <div>
+                   <h3 className="font-bold text-lg text-on-surface">{t('dashboard.yield_trend')}</h3>
+                   <p className="text-xs text-on-surface-variant">Estimated revenue vs actual harvest</p>
                 </div>
-                <p className="text-lg font-extrabold font-headline">{s.value}</p>
-                <p className="text-xs text-on-surface-variant">{s.label}</p>
-              </div>
-            ))}
+                <div className="flex gap-2">
+                   <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-primary-500" /> <span className="text-[10px] font-bold text-on-surface-variant">Sales</span></div>
+                   <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-secondary" /> <span className="text-[10px] font-bold text-on-surface-variant">Yield</span></div>
+                </div>
+             </div>
+             
+             <div className="h-48 w-full flex items-end justify-between gap-2 px-2">
+                {[40, 70, 45, 90, 65, 80, 55, 95, 75, 85, 60, 100].map((h, i) => (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
+                     <div className="w-full relative flex items-end justify-center h-40">
+                        <div className="w-full bg-secondary/10 rounded-t-lg absolute bottom-0 h-full" />
+                        <div 
+                          className="w-1/2 bg-gradient-to-t from-primary-600 to-primary-400 rounded-t-lg transition-all duration-1000 group-hover:from-primary-500 group-hover:to-primary-300"
+                          style={{ height: `${h}%` }}
+                        />
+                     </div>
+                     <span className="text-[9px] font-bold text-on-surface-variant opacity-50 uppercase tracking-tighter">M{i+1}</span>
+                  </div>
+                ))}
+             </div>
           </div>
+
+          {/* 🧩 NEW: Weather & Soil Widget (Visual Filler) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-gradient-to-br from-blue-600 to-blue-400 p-5 sm:p-6 rounded-[2rem] text-white shadow-lg flex items-center justify-between">
+               <div>
+                  <p className="text-[10px] sm:text-xs font-bold text-blue-100 uppercase tracking-widest mb-1">{t('dashboard.weather')}</p>
+                  <h4 className="text-2xl sm:text-3xl font-black">28°C</h4>
+                  <p className="text-xs sm:text-sm font-medium text-blue-50">Partly Cloudy · Humidity 45%</p>
+               </div>
+               <span className="material-symbols-outlined text-[48px] sm:text-[64px] text-white/40" style={{ fontVariationSettings: "'FILL' 1" }}>partly_cloudy_day</span>
+            </div>
+            
+            <div className="bg-gradient-to-br from-emerald-600 to-emerald-400 p-5 sm:p-6 rounded-[2rem] text-white shadow-lg flex items-center justify-between">
+               <div>
+                  <p className="text-[10px] sm:text-xs font-bold text-emerald-100 uppercase tracking-widest mb-1">{t('dashboard.soil')}</p>
+                  <h4 className="text-2xl sm:text-3xl font-black">64%</h4>
+                  <p className="text-xs sm:text-sm font-medium text-emerald-50">Optimal for Root Crops</p>
+               </div>
+               <span className="material-symbols-outlined text-[48px] sm:text-[64px] text-white/40" style={{ fontVariationSettings: "'FILL' 1" }}>water_drop</span>
+            </div>
+          </div>
+
         </section>
 
         {/* ── Right Column ── */}
         <section className="xl:col-span-5 space-y-6">
+          <AIPriceAdvisor />
 
           {/* Recent Orders */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold font-headline text-on-surface">Recent Orders</h2>
+                <h2 className="text-xl font-bold font-headline text-on-surface">{t('dashboard.recent_orders')}</h2>
                 <p className="text-xs text-on-surface-variant mt-0.5">5 orders this week</p>
               </div>
               <Link to="/farmer/orders" className="text-sm font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1">
-                History <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                {t('dashboard.history')} <span className="material-symbols-outlined text-sm">arrow_forward</span>
               </Link>
             </div>
             <div className="space-y-3">

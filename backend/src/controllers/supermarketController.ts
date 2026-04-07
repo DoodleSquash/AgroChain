@@ -224,7 +224,7 @@ export const payOrder = async (req: Request, res: Response): Promise<void> => {
         });
 
         const escrow = await tx.escrowAccount.create({ // Funds locked in Escrow
-           data: {
+          data: {
              order_id: id,
              total_amount: order.total_amount,
              remaining_amount: order.total_amount,
@@ -239,6 +239,14 @@ export const payOrder = async (req: Request, res: Response): Promise<void> => {
         const updatedOrder = await tx.order.update({
           where: { id },
           data: { status: 'IN_TRANSIT' } // Progress order pipeline
+        });
+
+        // Add 'CREATED' tracking log
+        await tx.trackingLog.create({
+          data: {
+            batch_id: order.batch_id,
+            event_type: 'CREATED'
+          }
         });
 
         return { payment, escrow, updatedOrder };
@@ -320,6 +328,16 @@ export const generateLogisticsToken = async (req: Request, res: Response): Promi
          details // e.g. { transporter_name: 'John Doe', vehicle: 'MH12AB1234' }
        }
      });
+
+     // Log 'OUT_FOR_DELIVERY' when transporter job Is created/accepted
+     if (type === 'TRANSPORT') {
+       await prisma.trackingLog.create({
+         data: {
+           batch_id: order.batch_id,
+           event_type: 'OUT_FOR_DELIVERY'
+         }
+       });
+     }
 
       res.status(201).json({ message: 'Logistics link generated', job });
    } catch (error) {

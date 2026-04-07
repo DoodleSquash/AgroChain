@@ -50,9 +50,9 @@ export const markPickup = async (req: Request, res: Response): Promise<void> => 
      if (job.type !== 'TRANSPORT') { res.status(400).json({ error: 'Invalid job type for pickup' }); return; }
      if (job.status !== 'PENDING') { res.status(400).json({ error: 'Job is already in progress or completed' }); return; }
 
-     // QR Match validation
-     if (qr_code !== job.order.batch.qr_code_url) {
-       res.status(400).json({ error: 'Invalid QR Code scan mismatch' }); return;
+     // QR Match validation - Use Job Token as the 'Billing QR'
+     if (qr_code !== job.token) {
+       res.status(400).json({ error: 'Invalid Billing QR Code' }); return;
      }
 
      const escrow = job.order.escrow_account;
@@ -60,8 +60,8 @@ export const markPickup = async (req: Request, res: Response): Promise<void> => 
        res.status(400).json({ error: 'Escrow account is not properly funded' }); return;
      }
 
-     // Calculate 40% release
-     const releaseAmount = Number(((escrow.total_amount * 40) / 100).toFixed(2));
+     // Calculate 50% release (Half share as requested)
+     const releaseAmount = Number(((escrow.total_amount * 50) / 100).toFixed(2));
      const newReleasedContent = escrow.released_amount + releaseAmount;
      const newRemainingAmount = escrow.total_amount - newReleasedContent;
 

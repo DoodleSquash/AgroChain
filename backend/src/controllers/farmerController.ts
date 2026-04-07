@@ -239,7 +239,8 @@ export const getOrders = async (req: Request, res: Response): Promise<void> => {
        include: {
          buyer: { select: { name: true, phone: true } },
          batch: { select: { crop: true, quantity: true } },
-         escrow_account: { select: { status: true, total_amount: true, released_amount: true } }
+         escrow_account: { select: { status: true, total_amount: true, released_amount: true } },
+         jobs: true
        },
        orderBy: { created_at: 'desc' }
      });

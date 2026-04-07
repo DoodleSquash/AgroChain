@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { API } from '../../lib/api';
 
 interface TrackingLog { event_type: string; timestamp: string; image_url: string | null; metadata: Record<string, string> | null }
@@ -11,9 +12,15 @@ interface BatchData {
   tracking_logs: TrackingLog[]
 }
 
-const EVENT_ICONS: Record<string, string>  = { CREATED: '🌾', PICKED_UP: '🚚', STORED: '🏭', DELIVERED: '✅' }
-const EVENT_LABELS: Record<string, string> = { CREATED: 'Batch Created', PICKED_UP: 'Picked Up', STORED: 'Stored in Warehouse', DELIVERED: 'Delivered' }
-const TIMELINE_EVENTS = ['CREATED', 'PICKED_UP', 'STORED', 'DELIVERED']
+const EVENT_ICONS: Record<string, string>  = { 
+  CREATED: '💰', 
+  OUT_FOR_DELIVERY: '📤', 
+  PICKED_UP: '🚚', 
+  STORED: '🏭', 
+  DELIVERED: '✅' 
+}
+
+const TIMELINE_EVENTS = ['CREATED', 'OUT_FOR_DELIVERY', 'PICKED_UP', 'STORED', 'DELIVERED']
 
 function fmtDate(d: string | null) {
   if (!d) return '—'
@@ -37,6 +44,7 @@ function Stars() {
 
 export default function Trace() {
   const { batchId } = useParams<{ batchId: string }>();
+  const { t } = useTranslation();
   const [batch, setBatch]     = useState<BatchData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
@@ -68,7 +76,10 @@ export default function Trace() {
   const imgSrc = batch.images?.[0]?.image_url || '/product_tomatoes.png';
   const pct = freshnessPct(batch.harvest_date, batch.expiry_date);
   const completedEvents = new Set(batch.tracking_logs.map(l => l.event_type));
-  const progressPct = Math.round((completedEvents.size / TIMELINE_EVENTS.length) * 100);
+  // Progress is based on the 4 key stages shown in the bar: Created, Out for Delivery, Picked Up, Stored
+  const stages = ['CREATED', 'OUT_FOR_DELIVERY', 'PICKED_UP', 'STORED'];
+  const completedStages = stages.filter(s => completedEvents.has(s)).length;
+  const progressPct = Math.min(100, Math.round((completedStages / stages.length) * 100));
   const warehouseLog = batch.tracking_logs.find(l => l.event_type === 'STORED');
   const meta = warehouseLog?.metadata;
 
@@ -140,26 +151,31 @@ export default function Trace() {
         {/* DELIVERY PROGRESS */}
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
           <div className="flex justify-between items-center mb-4">
-            <span className="text-sm font-extrabold text-gray-900">Delivery Progress</span>
+            <span className="text-sm font-extrabold text-gray-900">{t('logistics.delivery_progress')}</span>
             <span className="text-sm font-bold text-[#006b2c]">{progressPct}%</span>
           </div>
           <div className="relative h-3 bg-gray-100 rounded-full mb-2 overflow-hidden">
             <div className="h-full bg-gradient-to-r from-[#006b2c] to-green-400 rounded-full" style={{ width: `${progressPct}%` }} />
           </div>
           <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-wide mt-1">
-            <span>Created</span><span>Picked Up</span><span>Stored</span><span>Delivered</span>
+            <span>{t('logistics.created')}</span>
+            <span>{t('logistics.out_for_delivery')}</span>
+            <span>{t('logistics.picked_up')}</span>
+            <span>{t('logistics.stored')}</span>
           </div>
         </div>
 
         {/* TIMELINE */}
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-          <h2 className="text-base font-extrabold text-gray-900 mb-6">Batch Timeline</h2>
+          <h2 className="text-base font-extrabold text-gray-900 mb-6">{t('logistics.batch_timeline')}</h2>
           <div className="relative">
             <div className="absolute left-5 top-2 bottom-2 w-0.5 bg-gray-100" />
             <div className="space-y-6">
               {TIMELINE_EVENTS.map((evt, i) => {
                 const log = batch.tracking_logs.find(l => l.event_type === evt);
                 const done = !!log;
+                const labelKey = `logistics.${evt.toLowerCase()}`;
+                
                 return (
                   <div key={i} className="flex gap-4 relative">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0 z-10 border-4 border-white shadow-sm ${done ? 'bg-[#006b2c]' : 'bg-gray-100'}`}>
@@ -167,7 +183,7 @@ export default function Trace() {
                     </div>
                     <div className="flex-1 pb-2">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`text-sm font-extrabold ${done ? 'text-gray-900' : 'text-gray-400'}`}>{EVENT_LABELS[evt]}</span>
+                        <span className={`text-sm font-extrabold ${done ? 'text-gray-900' : 'text-gray-400'}`}>{t(labelKey)}</span>
                         {done
                           ? <span className="text-[10px] font-bold text-[#006b2c] bg-green-50 px-2 py-0.5 rounded-full border border-green-100">Done</span>
                           : <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">Pending</span>}
@@ -184,7 +200,7 @@ export default function Trace() {
         {/* QUALITY LOGS */}
         {meta && (
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-            <h2 className="text-base font-extrabold text-gray-900 mb-5">Quality Logs</h2>
+            <h2 className="text-base font-extrabold text-gray-900 mb-5">{t('logistics.quality_logs')}</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {[
                 { label: 'Weight',  value: `${meta.weight} kg`,       ok: true },
@@ -204,7 +220,7 @@ export default function Trace() {
         {/* FRESHNESS INDICATOR */}
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
           <div className="flex justify-between items-center mb-3">
-            <h2 className="text-base font-extrabold text-gray-900">Freshness Indicator</h2>
+            <h2 className="text-base font-extrabold text-gray-900">{t('logistics.freshness')}</h2>
             <span className={`text-sm font-extrabold px-3 py-1 rounded-full ${pct >= 70 ? 'text-[#006b2c] bg-green-50 border border-green-200' : pct >= 40 ? 'text-amber-600 bg-amber-50 border border-amber-200' : 'text-red-600 bg-red-50 border border-red-200'}`}>
               {pct}% Fresh
             </span>

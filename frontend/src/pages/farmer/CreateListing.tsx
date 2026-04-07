@@ -113,22 +113,22 @@ export default function CreateListing() {
   return (
     <div className="p-4 sm:p-6 md:p-10 max-w-[1000px] mx-auto">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 sm:mb-10">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-primary-600">add_circle</span>
             </div>
-            <h1 className="text-3xl font-extrabold font-headline tracking-tight text-on-surface">Create New Listing</h1>
+            <h1 className="text-2xl sm:text-3xl font-extrabold font-headline tracking-tight text-on-surface">Create New Listing</h1>
           </div>
-          <p className="text-on-surface-variant text-base">Fill in the details below to list your produce on the AgroChain marketplace.</p>
+          <p className="text-on-surface-variant text-sm sm:text-base">Fill in the details below to list your produce on the AgroChain marketplace.</p>
         </div>
       </div>
 
       <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/10 shadow-sm overflow-hidden">
-        <div className="h-4 bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600" />
+        <div className="h-2 sm:h-3 md:h-4 bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600" />
 
-        <div className="p-8 md:p-10">
+        <div className="p-5 sm:p-8 md:p-10">
           {error && (
             <div className="mb-6 bg-red-50 border border-red-200 text-red-700 rounded-xl px-5 py-4 text-sm font-medium flex items-center gap-2">
               <span className="material-symbols-outlined text-[18px]">error</span>
@@ -254,12 +254,12 @@ export default function CreateListing() {
 
               {previews.length === 0 && (
                 <div onClick={() => fileRef.current?.click()}
-                  className="border-2 border-dashed border-outline-variant/50 rounded-2xl p-10 bg-surface-container-low/30 text-center hover:bg-primary-50/50 hover:border-primary-300 transition-all cursor-pointer group">
-                  <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:bg-blue-100 transition-all">
-                    <span className="material-symbols-outlined text-blue-500 text-3xl">add_photo_alternate</span>
+                  className="border-2 border-dashed border-outline-variant/50 rounded-2xl p-6 sm:p-10 bg-surface-container-low/30 text-center hover:bg-primary-50/50 hover:border-primary-300 transition-all cursor-pointer group">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-3 sm:mb-4 group-hover:scale-110 group-hover:bg-blue-100 transition-all">
+                    <span className="material-symbols-outlined text-blue-500 text-2xl sm:text-3xl">add_photo_alternate</span>
                   </div>
-                  <h3 className="font-bold text-on-surface mb-1">Click to upload or drag & drop</h3>
-                  <p className="text-sm text-on-surface-variant max-w-sm mx-auto">PNG, JPG or WEBP (max 5MB each, up to 4 images)</p>
+                  <h3 className="font-bold text-on-surface mb-1 text-sm sm:text-base">Click to upload or drag & drop</h3>
+                  <p className="text-xs sm:text-sm text-on-surface-variant max-w-sm mx-auto">PNG, JPG or WEBP (up to 4 images)</p>
                 </div>
               )}
 

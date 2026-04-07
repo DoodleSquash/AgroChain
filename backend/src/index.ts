@@ -8,6 +8,7 @@ import supermarketRoutes from './routes/supermarketRoutes';
 import logisticsRoutes from './routes/logisticsRoutes';
 import publicRoutes from './routes/publicRoutes';
 import uploadRoutes from './routes/uploadRoutes';
+import aiRoutes from './routes/aiRoutes';
 import { ensureBucket } from './utils/supabase';
 
 dotenv.config();
@@ -24,6 +25,7 @@ app.use('/api/supermarket', supermarketRoutes);
 app.use('/api/logistics', logisticsRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/ai', aiRoutes);
 
 app.get('/', (req: Request, res: Response) => {
   res.json({ message: 'AgroChain Backend API is running' });

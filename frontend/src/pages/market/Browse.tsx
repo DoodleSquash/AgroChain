@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { API } from '../../lib/api'
 
 // Shape returned by the backend
@@ -51,6 +52,7 @@ function priceInRange(price: number, range: string): boolean {
 }
 
 export default function Browse() {
+  const { t } = useTranslation()
   const [batches, setBatches]       = useState<Batch[]>([])
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState('')
@@ -108,9 +110,9 @@ export default function Browse() {
           {/* Page header */}
           <div className="flex flex-wrap items-end justify-between gap-6 mb-7">
             <div>
-              <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 mb-1.5">Marketplace</h1>
+              <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 mb-1.5">{t('market.browse')}</h1>
               <p className="text-sm text-gray-500 max-w-lg leading-relaxed">
-                Direct access to verified produce. All contracts secured via escrow for guaranteed delivery.
+                {t('market.sub')}
               </p>
             </div>
             <div className="flex gap-2.5 shrink-0">
@@ -118,7 +120,7 @@ export default function Browse() {
                 <span className="material-symbols-outlined text-gray-400" style={{ fontSize: 18 }}>search</span>
                 <input
                   className="bg-transparent border-none outline-none text-sm w-40 text-[#191c1e]"
-                  placeholder="Search crops, farmers…"
+                  placeholder={t('market.search')}
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                 />
@@ -129,9 +131,9 @@ export default function Browse() {
           {/* Filters */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
             {[
-              { label: 'Crop Type',   value: cropType,   set: setCropType,   opts: CROP_TYPES },
-              { label: 'Location',    value: location,   set: setLocation,   opts: LOCATIONS },
-              { label: 'Price Range', value: priceRange, set: setPriceRange, opts: PRICE_RANGES },
+              { label: t('market.crop_type'),   value: cropType,   set: setCropType,   opts: CROP_TYPES },
+              { label: t('market.location'),    value: location,   set: setLocation,   opts: LOCATIONS },
+              { label: t('market.price_range'), value: priceRange, set: setPriceRange, opts: PRICE_RANGES },
             ].map(f => (
               <div key={f.label} className="bg-[#e0e3e5] rounded-2xl px-4 py-3">
                 <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{f.label}</label>
@@ -146,8 +148,8 @@ export default function Browse() {
             ))}
             <div className="bg-[#e0e3e5] rounded-2xl px-4 py-3 flex items-center justify-between">
               <div>
-                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Status</label>
-                <span className="text-sm font-semibold text-[#191c1e]">Verified Only</span>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{t('dashboard.verified')}</label>
+                <span className="text-sm font-semibold text-[#191c1e]">{t('market.verified_only')}</span>
               </div>
               <button
                 onClick={() => setVerified(v => !v)}
@@ -291,7 +293,7 @@ export default function Browse() {
                         <Link
                           to={`/market/batch/${l.id}`}
                           className="bg-blue-700 text-white px-4 py-2 rounded-full text-[12px] font-bold hover:bg-blue-900 transition-all cursor-pointer whitespace-nowrap border-none no-underline">
-                          Secure Asset
+                          {t('market.secure_asset')}
                         </Link>
                       </div>
                     </div>
@@ -306,9 +308,9 @@ export default function Browse() {
             <div className="flex items-start gap-4 max-w-sm">
               <span className="text-3xl shrink-0">🔒</span>
               <div>
-                <h4 className="text-lg font-extrabold text-gray-900 mb-1.5">Escrow Protection Active</h4>
+                <h4 className="text-lg font-extrabold text-gray-900 mb-1.5">{t('market.escrow_active')}</h4>
                 <p className="text-[13px] text-gray-500 leading-relaxed">
-                  Funds are held in a secure vault and only released upon your digital quality verification at delivery.
+                  {t('market.escrow_sub')}
                 </p>
               </div>
             </div>

@@ -57,7 +57,7 @@ function QRModal({ batch, onClose }: { batch: Batch; onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-5 sm:p-8 text-center">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-extrabold text-gray-900">Batch QR Code</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
@@ -181,7 +181,7 @@ function EditModal({ batch, onClose, onSaved }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 my-8">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-5 sm:p-8 my-8">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-extrabold text-gray-900">Edit Listing</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
@@ -325,19 +325,19 @@ export default function Listings() {
       {qrBatch && <QRModal batch={qrBatch} onClose={() => setQrBatch(null)} />}
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-5">
         <div>
-          <h1 className="text-3xl font-extrabold font-headline tracking-tight text-on-surface">My Listings</h1>
-          <p className="text-on-surface-variant text-base mt-2">Manage and track all your published crop batches here.</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold font-headline tracking-tight text-on-surface">My Listings</h1>
+          <p className="text-on-surface-variant text-sm sm:text-base mt-2">Manage and track all your published crop batches here.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="relative flex-1">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50">search</span>
             <input type="text" placeholder="Search crops..." value={search} onChange={e => setSearch(e.target.value)}
-              className="pl-10 pr-4 py-2.5 bg-surface-container-low border border-outline-variant/30 rounded-full focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all text-sm w-64 text-on-surface" />
+              className="w-full pl-10 pr-4 py-2.5 bg-surface-container-low border border-outline-variant/30 rounded-full focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all text-sm sm:w-64 text-on-surface" />
           </div>
           <Link to="/farmer/listings/new"
-            className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-full text-sm font-bold transition-colors shadow-sm no-underline">
+            className="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-full text-sm font-bold transition-colors shadow-sm no-underline">
             <span className="material-symbols-outlined text-[18px]">add</span>
             New Listing
           </Link>
