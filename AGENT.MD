@@ -302,7 +302,7 @@ Order Detail:
 Actions:
 
 * Generate transport link (requires entering transporter details such as name, email, and vehicle info, select order)
-* Generate warehouse link
+* Generate warehouse link 
 * Share links (copy/WhatsApp)
 
 ---
@@ -376,7 +376,7 @@ Sections:
 - `/market/browse` → **Marketplace**
 - `/market/batch/:id` → **Batch Details**
 - `/market/checkout` → **Order Placement**
-- `/market/logistics` → **Logistics Control**
+- `/market/logistics` → **Log istics Control**
 
 ### Link-Based (Unauthenticated)
 - `/delivery/:token` → **Transport Job Page**

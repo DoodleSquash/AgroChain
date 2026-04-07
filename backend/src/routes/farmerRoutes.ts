@@ -11,11 +11,7 @@ import {
   getOrders,
   getOrderDetails,
   getPayments,
-  getQR,
-  createHiringJob,
-  getHiringJobs,
-  deleteHiringJob,
-  getBuyers
+  getQR
 } from '../controllers/farmerController';
 import { authMiddleware } from '../middlewares/authMiddleware';
 
@@ -26,15 +22,10 @@ router.post('/register', register);
 router.post('/login', login);
 router.post('/verify-otp', verifyOTP);
 
-import { updateProfile } from '../controllers/publicController';
-
 // Protected Dashboard & Listings (Requires Auth)
 router.use(authMiddleware);
 
-router.put('/profile', updateProfile);
-
 router.get('/dashboard', getDashboard);
-router.get('/buyers', getBuyers);
 
 // Listings (Batches)
 router.post('/batches', createListing);
@@ -51,10 +42,5 @@ router.get('/orders/:id', getOrderDetails);
 
 // Payments Dashboard
 router.get('/payments', getPayments);
-
-// Hiring (Farmer Labor)
-router.post('/hiring', createHiringJob);
-router.get('/hiring', getHiringJobs);
-router.delete('/hiring/:id', deleteHiringJob);
 
 export default router;

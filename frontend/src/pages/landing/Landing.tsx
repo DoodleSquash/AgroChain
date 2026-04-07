@@ -156,7 +156,7 @@ export default function Landing() {
 
       {/* MARKETPLACE OVERVIEW */}
       <section className="py-24 px-6 mx-auto max-w-7xl text-center">
-        <Link to="/market/browse" className="inline-block px-4 py-1 bg-primary-50 text-primary-600 text-xs font-bold tracking-widest uppercase rounded-full mb-6 hover:bg-primary-100 transition-colors">Marketplace</Link>
+        <div className="inline-block px-4 py-1 bg-primary-50 text-primary-600 text-xs font-bold tracking-widest uppercase rounded-full mb-6">Marketplace</div>
         <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 mb-12">Fresh produce, verified at source</h2>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

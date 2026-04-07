@@ -1,22 +1,26 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
+import morgan from 'morgan';
 import dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { Pool } from 'pg';
+import prisma from './db';
+import farmerRoutes from './routes/farmerRoutes';
+import supermarketRoutes from './routes/supermarketRoutes';
+import logisticsRoutes from './routes/logisticsRoutes';
+import publicRoutes from './routes/publicRoutes';
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 5000;
 
-// Prisma 7 setup with PostgreSQL adapter
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
-
+app.use(morgan('dev'));
 app.use(cors());
 app.use(express.json());
+
+app.use('/api/farmers', farmerRoutes);
+app.use('/api/supermarket', supermarketRoutes);
+app.use('/api/logistics', logisticsRoutes);
+app.use('/api/public', publicRoutes);
 
 app.get('/', (req: Request, res: Response) => {
   res.json({ message: 'AgroChain Backend API is running' });

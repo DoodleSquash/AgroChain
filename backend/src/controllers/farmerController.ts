@@ -57,11 +57,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    if (user.role !== 'FARMER') {
-      res.status(403).json({ error: 'Invalid login: This account does not belong to a Farmer' });
-      return;
-    }
-
     if (!user.is_verified) {
       res.status(401).json({ error: 'User email not verified. Please verify OTP first.' });
       return;
@@ -134,43 +129,29 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
 
 export const createListing = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { farmer_id, crop, category, quantity, price_per_unit, harvest_date, expiry_date, location, images, badges } = req.body;
-
-    if (!quantity || Number(quantity) <= 0) {
-      res.status(400).json({ error: 'Quantity must be greater than zero' });
-      return;
-    }
+    const { farmer_id, crop, quantity, price_per_unit, harvest_date, expiry_date, location, images } = req.body;
     
-    // Create batch first to get the real UUID
+    const qr_code_url = `https://agrochain.app/trace/${Date.now()}`; // Mock QR Code URL
+    
     const batch = await prisma.batch.create({
       data: {
         farmer_id,
         crop,
-        category: category || 'Vegetables',
         quantity,
         price_per_unit,
         total_price: quantity * price_per_unit,
         harvest_date: new Date(harvest_date),
         expiry_date: expiry_date ? new Date(expiry_date) : null,
         location,
-        badges: badges || [],
-        qr_code_url: '', // placeholder
+        qr_code_url,
         images: {
           create: images?.map((url: string) => ({ image_url: url })) || []
         }
       },
       include: { images: true }
     });
-
-    // Update with real batch ID in QR URL
-    const qr_code_url = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/trace/${batch.id}`;
-    const updated = await prisma.batch.update({
-      where: { id: batch.id },
-      data: { qr_code_url },
-      include: { images: true }
-    });
     
-    res.status(201).json(updated);
+    res.status(201).json(batch);
   } catch (error) {
     res.status(500).json({ error: String(error) });
   }
@@ -201,12 +182,7 @@ export const getListings = async (req: Request, res: Response): Promise<void> =>
 export const updateListing = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = req.params.id as string;
-    const { status, price_per_unit, quantity, location, category, new_images } = req.body;
-
-    if (quantity !== undefined && Number(quantity) <= 0) {
-      res.status(400).json({ error: 'Quantity must be greater than zero' });
-      return;
-    }
+    const { status, price_per_unit, quantity, location } = req.body;
     
     const batch = await prisma.batch.update({
       where: { id },
@@ -215,16 +191,8 @@ export const updateListing = async (req: Request, res: Response): Promise<void> 
         price_per_unit, 
         quantity, 
         location,
-        category,
-        ...(quantity && price_per_unit && { total_price: quantity * price_per_unit }),
-        ...(new_images && Array.isArray(new_images) && new_images.length > 0 && {
-          images: {
-            deleteMany: {},
-            create: new_images.map((url: string) => ({ image_url: url }))
-          }
-        })
-      },
-      include: { images: true }
+        ...(quantity && price_per_unit && { total_price: quantity * price_per_unit })
+      }
     });
     res.json(batch);
   } catch (error) {
@@ -252,8 +220,7 @@ export const getOrders = async (req: Request, res: Response): Promise<void> => {
        include: {
          buyer: { select: { name: true, phone: true } },
          batch: { select: { crop: true, quantity: true } },
-         escrow_account: { select: { status: true, total_amount: true, released_amount: true } },
-         jobs: true
+         escrow_account: { select: { status: true, total_amount: true, released_amount: true } }
        },
        orderBy: { created_at: 'desc' }
      });
@@ -316,86 +283,9 @@ export const getQR = async (req: Request, res: Response): Promise<void> => {
    try {
      const id = req.params.id as string;
      const batch = await prisma.batch.findUnique({ where: { id }, select: { qr_code_url: true } });
-     if (!batch) { res.status(404).json({ error: 'Batch not found' }); return; }
-
-     const QRCode = await import('qrcode');
-     const traceUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/trace/${id}`;
-
-     // Return as base64 data URL so frontend can display without auth headers
-     const dataUrl = await QRCode.default.toDataURL(traceUrl, { width: 300, margin: 2 });
-     res.json({ qr_data_url: dataUrl, trace_url: traceUrl });
+     if (!batch) { res.status(404).json({ error: 'Batch not found' }); return;  }
+     res.json({ qr_code_url: batch.qr_code_url });
    } catch (error) {
      res.status(500).json({ error: String(error) });
    }
 }
-
-export const createHiringJob = async (req: Request, res: Response): Promise<void> => {
-   try {
-     const { farmer_id, title, location, lat, lng, wage, workers_needed, work_date, description } = req.body;
-     
-     const job = await prisma.hiringJob.create({
-       data: {
-         farmer_id,
-         title,
-         location,
-         lat: lat ? parseFloat(lat) : null,
-         lng: lng ? parseFloat(lng) : null,
-         wage,
-         workers_needed: parseInt(workers_needed),
-         work_date: new Date(work_date),
-         description
-       }
-     });
-     
-     res.status(201).json(job);
-   } catch (error) {
-     res.status(500).json({ error: String(error) });
-   }
-};
-
-export const getHiringJobs = async (req: Request, res: Response): Promise<void> => {
-   try {
-     const farmer_id = req.query.farmer_id as string;
-     if (!farmer_id) { res.status(400).json({ error: 'farmer_id required' }); return; }
-     
-     const jobs = await prisma.hiringJob.findMany({
-       where: { farmer_id },
-       include: { applications: true },
-       orderBy: { created_at: 'desc' }
-     });
-     
-     res.json(jobs);
-   } catch (error) {
-     res.status(500).json({ error: String(error) });
-   }
-};
-
-export const deleteHiringJob = async (req: Request, res: Response): Promise<void> => {
-   try {
-     const id = req.params.id as string;
-     await prisma.hiringJob.delete({ where: { id } });
-     res.json({ message: 'Hiring job deleted successfully' });
-   } catch (error) {
-     res.status(500).json({ error: String(error) });
-   }
-};
-
-export const getBuyers = async (req: Request, res: Response): Promise<void> => {
-   try {
-     const buyers = await prisma.user.findMany({
-       where: { role: 'BUYER' },
-       include: {
-         profile: true
-       }
-     });
-
-     const enrichedBuyers = buyers.map(b => {
-       const { otp_code, otp_expiry, ...safeUser } = b;
-       return safeUser;
-     });
-
-     res.json(enrichedBuyers);
-   } catch (error) {
-     res.status(500).json({ error: String(error) });
-   }
-};

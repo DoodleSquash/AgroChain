@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../db';
-import { sendOTP, sendTransportLink } from '../utils/mailer';
+import { sendOTP } from '../utils/mailer';
 import { signToken } from '../utils/auth';
 
 // 1. Mock Login / Auth
@@ -53,11 +53,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     if (!user) {
       res.status(404).json({ error: 'User not found' });
-      return;
-    }
-
-    if (user.role !== 'BUYER') {
-      res.status(403).json({ error: 'Invalid login: This account does not belong to a Buyer' });
       return;
     }
 
@@ -135,43 +130,12 @@ export const getMarketplace = async (req: Request, res: Response): Promise<void>
         ...(search && { crop: { contains: String(search), mode: 'insensitive' } })
       },
       include: {
-        farmer: { select: { id: true, name: true, is_verified: true } },
+        farmer: { select: { name: true } },
         images: true
       },
       orderBy: { created_at: 'desc' }
     });
     res.json(batches);
-  } catch (error) {
-    res.status(500).json({ error: String(error) });
-  }
-};
-
-export const getFarmers = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const farmers = await prisma.user.findMany({
-      where: { role: 'FARMER' },
-      include: {
-        profile: true,
-        batches: {
-          where: { status: 'ACTIVE' },
-          select: { crop: true, category: true, quantity: true }
-        }
-      }
-    });
-
-    const enrichedFarmers = farmers.map(f => {
-      // Calculate derived stats or just send raw
-      return {
-        id: f.id,
-        name: f.name,
-        is_verified: f.is_verified,
-        created_at: f.created_at,
-        profile: f.profile,
-        active_listings: f.batches
-      };
-    });
-
-    res.json(enrichedFarmers);
   } catch (error) {
     res.status(500).json({ error: String(error) });
   }
@@ -183,7 +147,7 @@ export const getListingDetails = async (req: Request, res: Response): Promise<vo
     const batch = await prisma.batch.findUnique({
       where: { id },
       include: {
-        farmer: { select: { id: true, name: true, phone: true, email: true } },
+        farmer: { select: { name: true, phone: true, email: true } },
         images: true
       }
     });
@@ -198,7 +162,7 @@ export const getListingDetails = async (req: Request, res: Response): Promise<vo
 // 4. Order Placement
 export const placeOrder = async (req: Request, res: Response): Promise<void> => {
    try {
-     const { buyer_id, batch_id, quantity, warehouse_id } = req.body;
+     const { buyer_id, batch_id, quantity } = req.body;
      
      const batch = await prisma.batch.findUnique({ where: { id: batch_id } });
      if (!batch) { res.status(404).json({ error: 'Batch not found' }); return; }
@@ -213,7 +177,6 @@ export const placeOrder = async (req: Request, res: Response): Promise<void> => 
          batch_id,
          quantity,
          total_amount,
-         warehouse_id, // Link to destination warehouse
          status: 'PENDING'
        }
      });
@@ -256,7 +219,7 @@ export const payOrder = async (req: Request, res: Response): Promise<void> => {
         });
 
         const escrow = await tx.escrowAccount.create({ // Funds locked in Escrow
-          data: {
+           data: {
              order_id: id,
              total_amount: order.total_amount,
              remaining_amount: order.total_amount,
@@ -271,14 +234,6 @@ export const payOrder = async (req: Request, res: Response): Promise<void> => {
         const updatedOrder = await tx.order.update({
           where: { id },
           data: { status: 'IN_TRANSIT' } // Progress order pipeline
-        });
-
-        // Add 'CREATED' tracking log
-        await tx.trackingLog.create({
-          data: {
-            batch_id: order.batch_id,
-            event_type: 'CREATED'
-          }
         });
 
         return { payment, escrow, updatedOrder };
@@ -299,10 +254,8 @@ export const getOrders = async (req: Request, res: Response): Promise<void> => {
     const orders = await prisma.order.findMany({
       where: { buyer_id },
       include: {
-        batch: { select: { id: true, crop: true, location: true, images: true, farmer: { select: { id: true, name: true, phone: true } } } },
-        warehouse: { select: { id: true, name: true, location: true } },
-        escrow_account: { select: { status: true } },
-        jobs: true
+        batch: { select: { crop: true, location: true, images: true } },
+        escrow_account: { select: { status: true } }
       },
       orderBy: { created_at: 'desc' }
     });
@@ -320,7 +273,7 @@ export const getOrderDetails = async (req: Request, res: Response): Promise<void
        where: { id },
        include: {
          batch: { 
-           include: { farmer: { select: { id: true, name: true, phone: true } }, tracking_logs: true }
+           include: { farmer: { select: { name: true, phone: true } }, tracking_logs: true }
          },
          escrow_account: true,
          payments: true,
@@ -351,10 +304,7 @@ export const generateLogisticsToken = async (req: Request, res: Response): Promi
 
      // Generate secure link representation
      const token = `tok_${type.toLowerCase()}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-     const link_url = type === 'TRANSPORT'
-       ? `${frontendUrl}/delivery/${token}`
-       : `${frontendUrl}/warehouse/${token}`;
+     const link_url = `https://agrochain.app/jobs/${token}`;
 
      const job = await prisma.job.create({
        data: {
@@ -366,76 +316,7 @@ export const generateLogisticsToken = async (req: Request, res: Response): Promi
        }
      });
 
-     // Log 'OUT_FOR_DELIVERY' when transporter job Is created/accepted
-     if (type === 'TRANSPORT') {
-       await prisma.trackingLog.create({
-         data: {
-           batch_id: order.batch_id,
-           event_type: 'OUT_FOR_DELIVERY'
-         }
-       });
-     }
-
       res.status(201).json({ message: 'Logistics link generated', job });
-   } catch (error) {
-     res.status(500).json({ error: String(error) });
-   }
-};
-
-// 7.1 Logistics Control Panel Updates
-export const updateLogisticsJob = async (req: Request, res: Response): Promise<void> => {
-   try {
-     const jobId = req.params.jobId as string;
-     const { driver_name, vehicle_number, driver_email } = req.body;
-     
-     const job = await prisma.job.findUnique({ where: { id: jobId } });
-     if (!job) { res.status(404).json({ error: 'Job not found' }); return; }
-
-     await prisma.job.update({
-       where: { id: jobId },
-       data: {
-         details: {
-           ...(job.details as any),
-           driver_name,
-           vehicle_number,
-           driver_email
-         }
-       }
-     });
-
-     res.json({ message: 'Logistics job updated successfully' });
-   } catch (error) {
-     res.status(500).json({ error: String(error) });
-   }
-};
-
-export const deleteLogisticsJob = async (req: Request, res: Response): Promise<void> => {
-   try {
-     const jobId = req.params.jobId as string;
-     await prisma.job.delete({ where: { id: jobId } });
-     res.json({ message: 'Logistics job deleted successfully' });
-   } catch (error) {
-     res.status(500).json({ error: String(error) });
-   }
-};
-
-export const sendLogisticsEmail = async (req: Request, res: Response): Promise<void> => {
-   try {
-     const jobId = req.params.jobId as string;
-     const job = await prisma.job.findUnique({ where: { id: jobId } });
-     
-     if (!job) { res.status(404).json({ error: 'Job not found' }); return; }
-     
-     const details = job.details as any;
-     const email = details?.driver_email;
-
-     if (!email) {
-       res.status(400).json({ error: 'No driver email recorded for this job' });
-       return;
-     }
-
-     await sendTransportLink(email, job.token, job.id);
-     res.json({ message: 'Transport link emailed to driver successfully!' });
    } catch (error) {
      res.status(500).json({ error: String(error) });
    }
