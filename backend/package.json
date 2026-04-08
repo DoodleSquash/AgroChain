@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon src/index.ts",
-    "build": "tsc",
+    "build": "npm install && npx prisma generate && tsc",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
@@ -21,6 +21,7 @@
     "@supabase/supabase-js": "^2.103.0",
     "@types/multer": "^2.1.0",
     "@types/qrcode": "^1.5.6",
+    "@types/socket.io": "^3.0.1",
     "cors": "^2.8.6",
     "dotenv": "^17.4.1",
     "express": "^5.2.1",
@@ -31,6 +32,7 @@
     "nodemailer": "^8.0.5",
     "pg": "^8.20.0",
     "qrcode": "^1.5.4",
+    "socket.io": "^4.8.3",
     "uuid": "^13.0.0"
   },
   "devDependencies": {

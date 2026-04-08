@@ -12,7 +12,7 @@ interface Batch {
   location: string | null
   qr_code_url: string | null
   status: string
-  farmer: { name: string; phone: string | null; email: string }
+  farmer: { id: string; name: string; phone: string | null; email: string }
   images: { image_url: string }[]
 }
 
@@ -38,7 +38,7 @@ export default function BatchDetails() {
   const [batch, setBatch]     = useState<Batch | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
-  const [qty, setQty]         = useState(100);
+  const [qty, setQty]         = useState(1);
   const [activeImg, setActiveImg] = useState(0);
 
   useEffect(() => {
@@ -80,7 +80,13 @@ export default function BatchDetails() {
 
   const goCheckout = () => {
     navigate('/market/checkout', {
-      state: { batchId: batch.id, quantity: qty, totalAmount: batch.price_per_unit * qty, crop: batch.crop }
+      state: {
+        batchId: batch.id,
+        quantity: qty,
+        totalAmount: batch.price_per_unit * qty,
+        crop: batch.crop,
+        imageUrl: images[activeImg],
+      }
     });
   };
 
@@ -164,12 +170,12 @@ export default function BatchDetails() {
             <div className="grid grid-cols-2 gap-y-5 gap-x-4">
               <div>
                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Farmer</span>
-                <div className="font-bold text-gray-900 flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-500 to-green-400 text-white text-xs font-bold flex items-center justify-center">
+                <Link to={`/profile/${batch.farmer.id}`} className="font-bold text-gray-900 flex items-center gap-2 no-underline hover:text-primary-700 transition-colors group">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-500 to-green-400 text-white text-xs font-bold flex items-center justify-center group-hover:scale-110 transition-transform">
                     {batch.farmer.name[0]}
                   </div>
                   {batch.farmer.name}
-                </div>
+                </Link>
               </div>
               <div>
                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Location</span>
@@ -192,17 +198,25 @@ export default function BatchDetails() {
             </div>
           </div>
 
-          {/* Quantity selector */}
           <div className="mb-6">
             <label className="text-sm font-bold text-gray-700 block mb-2">Order Quantity (kg)</label>
             <div className="bg-white border border-gray-200 rounded-2xl flex items-center p-2 shadow-sm focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-500/20 transition-all">
-              <button onClick={() => setQty(q => Math.max(1, q - 10))}
-                className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 font-bold text-lg transition-colors border-none cursor-pointer">−</button>
+              <button onClick={() => setQty(q => Math.max(1, q - 1))}
+                disabled={qty <= 1}
+                className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 disabled:opacity-30 disabled:hover:bg-gray-100 font-bold text-lg transition-colors border-none cursor-pointer">
+                -
+              </button>
               <input type="number" value={qty} min={1} max={batch.quantity}
-                onChange={e => setQty(Math.min(batch.quantity, Math.max(1, Number(e.target.value))))}
+                onChange={e => {
+                  const val = Number(e.target.value);
+                  if (!isNaN(val)) setQty(Math.min(batch.quantity, Math.max(1, val)));
+                }}
                 className="flex-1 border-none bg-transparent font-bold text-lg text-center focus:outline-none" />
-              <button onClick={() => setQty(q => Math.min(batch.quantity, q + 10))}
-                className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 font-bold text-lg transition-colors border-none cursor-pointer">+</button>
+              <button onClick={() => setQty(q => Math.min(batch.quantity, q + 1))}
+                disabled={qty >= batch.quantity}
+                className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 disabled:opacity-30 disabled:hover:bg-gray-100 font-bold text-lg transition-colors border-none cursor-pointer">
+                +
+              </button>
               <span className="pr-3 text-gray-400 font-bold">kg</span>
             </div>
           </div>

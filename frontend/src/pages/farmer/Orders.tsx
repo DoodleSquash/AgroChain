@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { API } from '../../lib/api';
+import { API, apiFetch } from '../../lib/api';
 import BuyerRiskModal from '../../components/farmer/BuyerRiskModal';
+import { useVoice } from '../../context/VoiceContext';
 
 interface Order {
   id: string;
@@ -22,16 +24,21 @@ export default function Orders() {
   const [error, setError] = useState('');
   const [riskModal, setRiskModal] = useState<{ id: string; name: string } | null>(null);
   const [qrModal, setQrModal] = useState<{ token: string; crop: string } | null>(null);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All Orders');
+  const [walletBalance, setWalletBalance] = useState(0);
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
   useEffect(() => {
-    const fetchOrders = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch(`${API}/farmers/orders?farmer_id=${user.id}`);
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to fetch orders');
-        setOrders(data);
+        const [ordersData, paymentsData] = await Promise.all([
+          apiFetch<Order[]>(`/farmers/orders?farmer_id=${user.id}`),
+          apiFetch<any>(`/farmers/payments?farmer_id=${user.id}`)
+        ]);
+        setOrders(ordersData);
+        setWalletBalance(paymentsData.releasedPayments || 0);
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -39,8 +46,54 @@ export default function Orders() {
       }
     };
 
-    if (user.id) fetchOrders();
-  }, [user.id, API]);
+    if (user.id) fetchData();
+  }, [user.id]);
+
+  const [voiceToast, setVoiceToast] = useState<string | null>(null);
+  const showVoiceToast = (msg: string) => {
+    setVoiceToast(msg);
+    setTimeout(() => setVoiceToast(null), 4000);
+  };
+
+  // ── Voice Control ──
+  const voiceContext = `
+PAGE_CONTEXT: Orders Management
+Data:
+- Total Wallet Balance: ₹${walletBalance}
+- Total Orders: ${orders.length}
+- Pending/In-Transit Orders: ${orders.filter(o => o.status === 'PENDING' || o.status === 'IN_TRANSIT').length}
+- Completed: ${orders.filter(o => o.status === 'COMPLETED' || o.status === 'DELIVERED').length}
+
+Recent Orders:
+${orders.map(o => `- Order #${o.id.slice(0,6)} by ${o.buyer.name} for ${o.batch.crop} at ₹${o.total_amount}. Status: ${o.status}`).join('\n')}
+
+Supported actions schema:
+{
+  "action": "FILTER_ORDERS",
+  "fields": {
+    "search": "buyer name or order ID to search or null",
+    "status": "All Orders" | "Pending" | "In Transit" | "Completed" or null
+  }
+}
+  `.trim();
+
+  const handleVoiceIntent = (intent: any) => {
+    if (!intent) return;
+    if (intent.action === 'FILTER_ORDERS') {
+      const { search: newSearch, status: newStatus } = intent.fields;
+      if (typeof newSearch === 'string') setSearch(newSearch);
+      if (newStatus) setStatusFilter(newStatus);
+      showVoiceToast('✅ Applied order filters');
+    }
+  };
+
+  useVoice(voiceContext, handleVoiceIntent);
+
+  const filteredOrders = orders.filter(o => {
+    const matchesSearch = o.buyer.name.toLowerCase().includes(search.toLowerCase()) || o.id.includes(search);
+    const matchesStatus = statusFilter === 'All Orders' || o.status === statusFilter.toUpperCase().replace(' ', '_');
+    return matchesSearch && matchesStatus;
+  });
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -55,7 +108,7 @@ export default function Orders() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'IN_TRANSIT': return 'route';
+      case 'IN_TRANSIT': return 'local_shipping';
       case 'PENDING': return 'inventory';
       case 'DELIVERED': return 'verified';
       case 'COMPLETED': return 'done_all';
@@ -67,6 +120,14 @@ export default function Orders() {
   return (
     <div className="p-4 sm:p-6 md:p-10 max-w-[1400px] mx-auto space-y-6 md:space-y-8">
       
+      {/* Voice Action Toast */}
+      {voiceToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[9998] bg-gray-900/95 text-white text-sm font-semibold px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 animate-slideUp">
+          <span className="material-symbols-outlined text-[18px] text-green-400">mic</span>
+          {voiceToast}
+        </div>
+      )}
+
       {/* ── Header ── */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-5">
         <div>
@@ -87,8 +148,8 @@ export default function Orders() {
           {[
             { label: 'Active Orders', val: orders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED').length.toString(), icon: 'shopping_cart', c: 'blue' },
             { label: 'Pending Pickup', val: orders.filter(o => o.status === 'PENDING').length.toString(), icon: 'local_shipping', c: 'amber' },
-            { label: 'In Transit', val: orders.filter(o => o.status === 'IN_TRANSIT').length.toString(), icon: 'route', c: 'violet' },
-            { label: 'Wallet Balance', val: '₹62,400', icon: 'account_balance_wallet', c: 'emerald' },
+            { label: 'In Transit', val: orders.filter(o => o.status === 'IN_TRANSIT').length.toString(), icon: 'local_shipping', c: 'violet' },
+            { label: 'Wallet Balance', val: `₹${walletBalance.toLocaleString('en-IN')}`, icon: 'account_balance_wallet', c: 'emerald' },
           ].map((s, i) => (
              <div key={i} className="bg-surface-container-lowest rounded-2xl p-4 sm:p-5 border border-outline-variant/10 shadow-sm flex items-center gap-3 sm:gap-4 group hover:border-primary-200 transition-all">
                 <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary-50 flex items-center justify-center text-primary-600 group-hover:scale-110 transition-transform flex-shrink-0`}>
@@ -105,13 +166,18 @@ export default function Orders() {
       <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/10 shadow-sm overflow-hidden flex flex-col">
           
         {/* Table Toolbar */}
+        {/* Table Toolbar */}
         <div className="p-4 border-b border-outline-variant/10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-surface-container-low/50">
            <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 sm:pb-0">
              <span className="material-symbols-outlined text-on-surface-variant text-[20px]">filter_alt</span>
              <span className="text-sm font-bold text-on-surface-variant">Filter:</span>
-             <select className="bg-white border border-outline-variant/30 rounded-lg px-3 py-1.5 text-sm font-medium outline-none text-on-surface">
+             <select 
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="bg-white border border-outline-variant/30 rounded-lg px-3 py-1.5 text-sm font-medium outline-none text-on-surface"
+             >
                 <option>All Orders</option>
-                <option>Pending Pickup</option>
+                <option>Pending</option>
                 <option>In Transit</option>
                 <option>Completed</option>
              </select>
@@ -119,9 +185,17 @@ export default function Orders() {
            
            <div className="relative">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-[18px]">search</span>
-              <input type="text" placeholder="Search Order ID or Buyer..." className="w-full sm:w-64 pl-9 pr-4 py-1.5 bg-white border border-outline-variant/30 rounded-lg outline-none focus:border-primary-500 text-sm text-on-surface" />
+              <input 
+                type="text" 
+                placeholder="Search Order ID or Buyer..." 
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full sm:w-64 pl-9 pr-4 py-1.5 bg-white border border-outline-variant/30 rounded-lg outline-none focus:border-primary-500 text-sm text-on-surface" 
+              />
            </div>
-                {/* Desktop Table */}
+        </div>
+        
+        {/* Desktop Table */}
         <div className="hidden md:block overflow-x-auto">
           {loading ? (
             <div className="p-20 text-center animate-pulse">
@@ -133,10 +207,10 @@ export default function Orders() {
                <span className="material-symbols-outlined text-[48px] text-red-200">error</span>
                <p className="text-red-600 font-bold mt-2">{error}</p>
             </div>
-          ) : orders.length === 0 ? (
+          ) : filteredOrders.length === 0 ? (
             <div className="p-20 text-center">
                <span className="material-symbols-outlined text-[48px] text-surface-container-high">inbox</span>
-               <p className="text-on-surface-variant font-bold mt-2">No orders found yet.</p>
+               <p className="text-on-surface-variant font-bold mt-2">No orders found matching your filters.</p>
             </div>
           ) : (
             <table className="w-full text-left border-collapse">
@@ -151,7 +225,7 @@ export default function Orders() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
-                {orders.map((order) => {
+                {filteredOrders.map((order) => {
                   const transportJob = order.jobs?.find(j => j.type === 'TRANSPORT' && j.status === 'PENDING');
                   
                   return (
@@ -161,7 +235,16 @@ export default function Orders() {
                            <span className="text-sm font-bold text-on-surface flex items-center gap-1.5">
                              #ORD-{order.id.slice(0, 8)}
                            </span>
-                           <span className="text-xs text-on-surface-variant font-medium">{order.buyer.name}</span>
+                           <div className="flex items-center gap-2 mt-1">
+                             <Link to={`/profile/${order.buyer_id}`} className="shrink-0 group/av">
+                               <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white text-[9px] font-bold flex items-center justify-center group-hover/av:scale-110 transition-transform">
+                                 {order.buyer.name[0]}
+                               </div>
+                             </Link>
+                             <Link to={`/profile/${order.buyer_id}`} className="text-xs text-on-surface-variant font-medium hover:text-primary-700 transition-colors">
+                               {order.buyer.name}
+                             </Link>
+                           </div>
                            <span className="text-[11px] text-on-surface-variant mt-1 opacity-70 flex items-center gap-1">
                               <span className="material-symbols-outlined text-[12px]">schedule</span> {new Date(order.created_at).toLocaleDateString()}
                            </span>
@@ -175,7 +258,7 @@ export default function Orders() {
                            </div>
                            <div className="flex flex-col">
                              <span className="text-sm font-bold text-on-surface">{order.batch.crop}</span>
-                             <span className="text-xs font-medium text-gray-500">{order.quantity} kg</span>
+                             <span className="text-xs font-medium text-gray-500">{order.batch.quantity} kg</span>
                            </div>
                         </div>
                       </td>
@@ -240,7 +323,12 @@ export default function Orders() {
                       <div className="flex flex-col">
                          <span className="text-xs font-black text-primary-700 uppercase tracking-tighter">#ORD-{order.id.slice(0, 8)}</span>
                          <h4 className="font-bold text-on-surface">{order.batch.crop}</h4>
-                         <p className="text-xs text-on-surface-variant">{order.quantity} kg · {order.buyer.name}</p>
+                         <p className="text-xs text-on-surface-variant font-medium">
+                            {order.batch.quantity} kg · 
+                            <Link to={`/profile/${order.buyer_id}`} className="hover:text-primary-700 transition-colors ml-1">
+                               {order.buyer.name}
+                            </Link>
+                         </p>
                       </div>
                       <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10px] font-black uppercase ${getStatusStyle(order.status)}`}>
                          <span className="material-symbols-outlined text-[12px]">{getStatusIcon(order.status)}</span>
@@ -292,7 +380,6 @@ export default function Orders() {
               </div>
            )}
         </div>      </div>
-      </div>
 
       {/* Trust Shield Modal */}
       {riskModal && (

@@ -80,3 +80,19 @@ body {
   width: 100%;
   min-height: 100svh;
 }
+
+/* Hide Google Translate UI */
+.skiptranslate iframe,
+.goog-te-banner-frame.skiptranslate {
+  display: none !important;
+}
+body {
+  top: 0px !important;
+}
+#goog-gt-tt, .goog-te-balloon-frame {
+  display: none !important;
+}
+.goog-text-highlight {
+  background: none !important;
+  box-shadow: none !important;
+}

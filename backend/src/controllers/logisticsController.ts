@@ -60,8 +60,8 @@ export const markPickup = async (req: Request, res: Response): Promise<void> => 
        res.status(400).json({ error: 'Escrow account is not properly funded' }); return;
      }
 
-     // Calculate 50% release (Half share as requested)
-     const releaseAmount = Number(((escrow.total_amount * 50) / 100).toFixed(2));
+     // Calculate 40% release
+     const releaseAmount = Number(((escrow.total_amount * 40) / 100).toFixed(2));
      const newReleasedContent = escrow.released_amount + releaseAmount;
      const newRemainingAmount = escrow.total_amount - newReleasedContent;
 
@@ -225,4 +225,216 @@ export const logWarehouseData = async (req: Request, res: Response): Promise<voi
    } catch (error) {
      res.status(500).json({ error: String(error) });
    }
+};
+
+// 6. OTP-based Pickup Verification
+// POST /api/logistics/jobs/:token/verify-otp
+// Step 1: body = { phone } → sends OTP to farmer if phone matches
+// Step 2: body = { phone, otp } → verifies OTP and marks pickup
+export const verifyPickupOTP = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const token = req.params.token as string;
+    const { email, otp } = req.body;
+
+    const job = await prisma.job.findUnique({
+      where: { token },
+      include: {
+        order: {
+          include: {
+            batch: { include: { farmer: true } },
+            escrow_account: true,
+          }
+        }
+      }
+    });
+
+    if (!job) { res.status(404).json({ error: 'Job not found' }); return; }
+    if (job.type !== 'TRANSPORT') { res.status(400).json({ error: 'Not a transport job' }); return; }
+
+    const farmer = job.order.batch.farmer;
+
+    // Step 1: Send OTP
+    if (!otp) {
+      if (!email) { res.status(400).json({ error: 'Email required' }); return; }
+      if (farmer.email !== email) {
+        res.status(400).json({ error: 'Email does not match farmer records' }); return;
+      }
+
+      const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiry = new Date(Date.now() + 10 * 60 * 1000);
+
+      await prisma.user.update({
+        where: { id: farmer.id },
+        data: { otp_code: generatedOtp, otp_expiry: expiry }
+      });
+
+      // Try to send email OTP (silently fails if email not configured)
+      if (farmer.email) {
+        const { sendOTP } = await import('../utils/mailer');
+        await sendOTP(farmer.email, generatedOtp);
+      }
+
+      res.json({
+        message: 'OTP sent to farmer. Ask the farmer to share the code.',
+        debug_otp: generatedOtp // remove in production
+      });
+      return;
+    }
+
+    // Step 2: Verify OTP and mark pickup
+    const updatedFarmer = await prisma.user.findUnique({ where: { id: farmer.id } });
+    if (!updatedFarmer?.otp_code || updatedFarmer.otp_code !== otp) {
+      res.status(400).json({ error: 'Invalid OTP' }); return;
+    }
+    if (!updatedFarmer.otp_expiry || updatedFarmer.otp_expiry < new Date()) {
+      res.status(400).json({ error: 'OTP expired' }); return;
+    }
+    if (job.status !== 'PENDING') {
+      res.status(400).json({ error: 'Job already processed' }); return;
+    }
+
+    const escrow = job.order.escrow_account;
+    if (!escrow || escrow.status !== 'FUNDED') {
+      res.status(400).json({ error: 'Order payment is pending. Please ask the buyer to fund the escrow before pickup.' }); 
+      return;
+    }
+
+    const releaseAmount = Number(((escrow.total_amount * 40) / 100).toFixed(2));
+
+    await prisma.$transaction(async (tx) => {
+      await tx.trackingLog.create({
+        data: { batch_id: job.order.batch_id, event_type: 'PICKED_UP' }
+      });
+      await tx.job.update({ where: { id: job.id }, data: { status: 'IN_PROGRESS' } });
+      await tx.escrowAccount.update({
+        where: { id: escrow.id },
+        data: {
+          released_amount: escrow.released_amount + releaseAmount,
+          remaining_amount: escrow.total_amount - (escrow.released_amount + releaseAmount),
+          status: 'PARTIAL_RELEASED',
+          transactions: { create: { type: 'PARTIAL_RELEASE', amount: releaseAmount } }
+        }
+      });
+      await tx.user.update({ where: { id: farmer.id }, data: { otp_code: null, otp_expiry: null } });
+    });
+
+    res.json({ message: 'Pickup verified via OTP. 40% escrow released to farmer.' });
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
+  }
+};
+
+// 7. OTP-based Delivery Verification (Warehouse)
+// POST /api/logistics/jobs/:token/verify-delivery
+// Step 1: body = { warehouse_email } -> sends OTP to warehouse collector
+// Step 2: body = { warehouse_email, otp } -> verifies and completes delivery
+export const verifyDeliveryOTP = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const token = req.params.token as string;
+    const { warehouse_email, otp } = req.body;
+
+    const job = await prisma.job.findUnique({
+      where: { token },
+      include: {
+        order: {
+          include: {
+            batch: true,
+            escrow_account: true,
+            warehouse: true // Verify the destination warehouse
+          }
+        }
+      }
+    });
+
+    if (!job) { res.status(404).json({ error: 'Job not found' }); return; }
+    if (job.status !== 'IN_PROGRESS') {
+      res.status(400).json({ error: 'Job must be in transit to confirm delivery' });
+      return;
+    }
+
+    const order = job.order;
+    if (!order.warehouse_id) {
+       res.status(400).json({ error: 'No destination warehouse assigned to this order. Management must assign one first.' });
+       return;
+    }
+
+    // Verify the email belongs to a worker in the SPECIFIC warehouse assigned to the order
+    const worker = await prisma.warehouseWorker.findFirst({
+      where: { 
+        email: warehouse_email, 
+        warehouse_id: order.warehouse_id 
+      }
+    });
+
+    if (!worker) {
+      res.status(404).json({ error: 'Unauthorized personnel. This email is not registered at the assigned destination warehouse.' });
+      return;
+    }
+
+    // Step 1: Send OTP
+    if (!otp) {
+      const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiry = new Date(Date.now() + 10 * 60 * 1000);
+
+      await prisma.warehouseWorker.update({
+        where: { id: worker.id },
+        data: { otp_code: generatedOtp, otp_expiry: expiry }
+      });
+
+      // Send email
+      const { sendOTP } = await import('../utils/mailer');
+      await sendOTP(warehouse_email, generatedOtp);
+
+      res.json({
+        message: 'OTP sent to warehouse worker email.',
+        debug_otp: generatedOtp // remove in production
+      });
+      return;
+    }
+
+    // Step 2: Verify OTP and finalize delivery
+    if (worker.otp_code !== otp) {
+      res.status(400).json({ error: 'Invalid OTP' }); return;
+    }
+    if (!worker.otp_expiry || worker.otp_expiry < new Date()) {
+      res.status(400).json({ error: 'OTP expired' }); return;
+    }
+
+    const escrow = job.order.escrow_account;
+    if (!escrow || escrow.status !== 'PARTIAL_RELEASED') {
+      res.status(400).json({ error: 'Escrow status mismatch. Is pickup completed?' });
+      return;
+    }
+
+    const finalReleaseAmount = escrow.remaining_amount;
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Log Event
+      await tx.trackingLog.create({
+        data: { batch_id: job.order.batch_id, event_type: 'DELIVERED' }
+      });
+
+      // 2. Complete Job & Order
+      await tx.job.update({ where: { id: job.id }, data: { status: 'COMPLETED' } });
+      await tx.order.update({ where: { id: job.order_id }, data: { status: 'DELIVERED' } });
+
+      // 3. Final Escrow Release
+      await tx.escrowAccount.update({
+        where: { id: escrow.id },
+        data: {
+          released_amount: escrow.total_amount,
+          remaining_amount: 0,
+          status: 'COMPLETED',
+          transactions: { create: { type: 'FINAL_RELEASE', amount: finalReleaseAmount } }
+        }
+      });
+
+      // 4. Clear OTP
+      await tx.warehouseWorker.update({ where: { id: worker.id }, data: { otp_code: null, otp_expiry: null } });
+    });
+
+    res.json({ message: 'Delivery confirmed via OTP. Final payment released to farmer.' });
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
+  }
 };

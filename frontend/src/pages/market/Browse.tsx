@@ -1,24 +1,41 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState, useRef } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { API } from '../../lib/api'
+import { apiFetch } from '../../lib/api'
+import { INDIAN_CITIES } from '../../lib/cities'
 
 // Shape returned by the backend
 interface Batch {
   id: string
   crop: string
+  category: string
   quantity: number
   price_per_unit: number
   harvest_date: string
   expiry_date: string | null
   location: string | null
   status: string
-  farmer: { name: string }
+  farmer: { id: string; name: string; is_verified: boolean }
   images: { image_url: string }[]
 }
 
+interface FarmerProfile {
+  location: string | null
+  farmer_type: string | null
+  rating: number
+  review_count: number
+}
+
+interface Farmer {
+  id: string
+  name: string
+  is_verified: boolean
+  created_at: string
+  profile: FarmerProfile | null
+  active_listings: { crop: string; category: string; quantity: number }[]
+}
+
 const CROP_TYPES   = ['All Produce', 'Vegetables', 'Fruits', 'Herbs', 'Dairy', 'Grains']
-const LOCATIONS    = ['All Locations', 'Maharashtra', 'Gujarat', 'Madhya Pradesh', 'Rajasthan']
 const PRICE_RANGES = ['Any Price', 'Under ₹500', '₹500–₹1,500', '₹1,500+']
 
 function Stars({ rating }: { rating: number }) {
@@ -53,7 +70,15 @@ function priceInRange(price: number, range: string): boolean {
 
 export default function Browse() {
   const { t } = useTranslation()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const viewMode = (searchParams.get('tab') as 'produce' | 'farmers') || 'produce'
+  const setViewMode = (mode: 'produce' | 'farmers') => {
+    searchParams.set('tab', mode)
+    setSearchParams(searchParams)
+  }
+
   const [batches, setBatches]       = useState<Batch[]>([])
+  const [farmers, setFarmers]       = useState<Farmer[]>([])
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState('')
   const [search, setSearch]         = useState('')
@@ -62,6 +87,22 @@ export default function Browse() {
   const [priceRange, setPriceRange] = useState('Any Price')
   const [verifiedOnly, setVerified] = useState(false)
   const [wishlist, setWishlist]     = useState<string[]>([])
+  const [showCityMenu, setShowCityMenu] = useState(false)
+  const [farmerType, setFarmerType] = useState('All Types')
+  const [farmerTypes, setFarmerTypes] = useState<string[]>([])
+  const [showTypeMenu, setShowTypeMenu] = useState(false)
+  const [typeSearch, setTypeSearch] = useState('')
+  const filterRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const clickOut = (e: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setShowCityMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', clickOut)
+    return () => document.removeEventListener('mousedown', clickOut)
+  }, [])
 
   useEffect(() => {
     document.body.style.background = '#f7f9fb'
@@ -69,34 +110,53 @@ export default function Browse() {
   }, [])
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    setLoading(true)
-    setError('')
-    fetch(`${API}/supermarket/marketplace`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then(r => {
-        if (!r.ok) throw new Error(`Server error ${r.status}`)
-        return r.json()
-      })
-      .then((data: Batch[]) => {
+    const fetchBatches = async () => {
+      try {
+        const data = await apiFetch<Batch[]>('/supermarket/marketplace')
         setBatches(data)
+      } catch (err: any) {
+        setError(err.message)
+      }
+    }
+
+    const fetchFarmers = async () => {
+      try {
+        const data = await apiFetch<Farmer[]>('/supermarket/farmers')
+        setFarmers(data)
+      } catch (err: any) {
+        setError(err.message)
+      } finally {
         setLoading(false)
-      })
-      .catch(e => {
-        setError(e.message)
-        setLoading(false)
-      })
+      }
+    }
+
+    const fetchFarmerTypes = async () => {
+       try {
+         const types = await apiFetch<any[]>('/public/farmer-types');
+         setFarmerTypes(['All Types', ...types.map(t => t.name)]);
+       } catch (err) { }
+    };
+
+    fetchBatches()
+    fetchFarmers()
+    fetchFarmerTypes()
   }, [])
 
-  const filtered = batches.filter(l => {
+  const filtered = viewMode === 'produce' ? batches.filter(l => {
     if (search && !l.crop.toLowerCase().includes(search.toLowerCase()) &&
         !l.farmer.name.toLowerCase().includes(search.toLowerCase())) return false
-    if (cropType !== 'All Produce' && l.crop.toLowerCase() !== cropType.toLowerCase()) return false
-    if (location !== 'All Locations' && !(l.location || '').includes(location.split(',')[0])) return false
+    if (cropType !== 'All Produce' && l.category !== cropType) return false
+    if (location !== 'All Locations' && !(l.location || '').toLowerCase().includes(location.toLowerCase())) return false
     if (!priceInRange(l.price_per_unit, priceRange)) return false
+    if (verifiedOnly && !l.farmer.is_verified) return false
     return true
-  })
+  }) : farmers.filter(f => {
+    if (search && !f.name.toLowerCase().includes(search.toLowerCase())) return false
+    if (farmerType !== 'All Types' && f.profile?.farmer_type !== farmerType) return false
+    if (location !== 'All Locations' && !(f.profile?.location || '').toLowerCase().includes(location.toLowerCase())) return false
+    if (verifiedOnly && !f.is_verified) return false
+    return true
+  });
 
   const toggleWish = (id: string) =>
     setWishlist(w => w.includes(id) ? w.filter(x => x !== id) : [...w, id])
@@ -128,24 +188,144 @@ export default function Browse() {
             </div>
           </div>
 
+          {/* View Toggle */}
+          <div className="flex gap-4 mb-5 border-b border-gray-200">
+            <button 
+              onClick={() => { setViewMode('produce'); setSearch(''); setLocation('All Locations'); }}
+              className={`pb-3 px-2 font-bold text-sm transition-colors relative ${viewMode === 'produce' ? 'text-blue-700' : 'text-gray-500 hover:text-gray-800'}`}
+            >
+              Produce
+              {viewMode === 'produce' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-700 rounded-t-full" />}
+            </button>
+            <button 
+              onClick={() => { setViewMode('farmers'); setSearch(''); setLocation('All Locations'); }}
+              className={`pb-3 px-2 font-bold text-sm transition-colors relative ${viewMode === 'farmers' ? 'text-blue-700' : 'text-gray-500 hover:text-gray-800'}`}
+            >
+              Farmers
+              {viewMode === 'farmers' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-700 rounded-t-full" />}
+            </button>
+          </div>
+
           {/* Filters */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-            {[
-              { label: t('market.crop_type'),   value: cropType,   set: setCropType,   opts: CROP_TYPES },
-              { label: t('market.location'),    value: location,   set: setLocation,   opts: LOCATIONS },
-              { label: t('market.price_range'), value: priceRange, set: setPriceRange, opts: PRICE_RANGES },
-            ].map(f => (
-              <div key={f.label} className="bg-[#e0e3e5] rounded-2xl px-4 py-3">
-                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{f.label}</label>
+            {/* Crop Type Filter OR Farmer Type Filter */}
+            {viewMode === 'produce' ? (
+              <div className="bg-[#e0e3e5] rounded-2xl px-4 py-3">
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{t('market.crop_type')}</label>
                 <select
                   className="w-full bg-transparent border-none outline-none text-sm font-semibold text-[#191c1e] cursor-pointer"
-                  value={f.value}
-                  onChange={e => f.set(e.target.value)}
+                  value={cropType}
+                  onChange={e => setCropType(e.target.value)}
                 >
-                  {f.opts.map(o => <option key={o}>{o}</option>)}
+                  {CROP_TYPES.map(o => <option key={o}>{o}</option>)}
                 </select>
               </div>
-            ))}
+            ) : (
+              <div className="bg-[#e0e3e5] rounded-2xl px-4 py-3 relative">
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Farmer Type</label>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="text"
+                    className="w-full bg-transparent border-none outline-none text-sm font-semibold text-[#191c1e] placeholder:text-gray-400"
+                    placeholder="Search Type..."
+                    value={farmerType === 'All Types' ? typeSearch : farmerType}
+                    onChange={e => {
+                       setTypeSearch(e.target.value);
+                       if (e.target.value === '') setFarmerType('All Types');
+                    }}
+                    onFocus={() => setShowTypeMenu(true)}
+                  />
+                  {farmerType !== 'All Types' && (
+                     <button onClick={() => { setFarmerType('All Types'); setTypeSearch(''); }} className="text-gray-400 hover:text-gray-600">
+                       <span className="material-symbols-outlined text-[16px]">close</span>
+                     </button>
+                  )}
+                </div>
+
+                {showTypeMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowTypeMenu(false)} />
+                    <div className="absolute top-full left-0 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="p-2 space-y-1">
+                        {farmerTypes
+                          .filter(t => t.toLowerCase().includes(typeSearch.toLowerCase()))
+                          .map(t => (
+                            <button
+                              key={t}
+                              onClick={() => { setFarmerType(t); setTypeSearch(''); setShowTypeMenu(false); }}
+                              className="w-full text-left px-3 py-2 rounded-xl text-sm font-medium hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                            >
+                              {t}
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+
+            {/* Location Searchable Dropdown */}
+            <div className="bg-[#e0e3e5] rounded-2xl px-4 py-3 relative group">
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{t('market.location')}</label>
+              <div className="flex items-center gap-1">
+                <input
+                  type="text"
+                  className="w-full bg-transparent border-none outline-none text-sm font-semibold text-[#191c1e] placeholder:text-gray-400"
+                  placeholder="Search City..."
+                  value={location === 'All Locations' ? '' : location}
+                  onChange={e => setLocation(e.target.value || 'All Locations')}
+                  onFocus={() => setShowCityMenu(true)}
+                />
+                {location !== 'All Locations' && (
+                   <button onClick={() => setLocation('All Locations')} className="text-gray-400 hover:text-gray-600">
+                     <span className="material-symbols-outlined text-[16px]">close</span>
+                   </button>
+                )}
+              </div>
+              
+              {showCityMenu && (
+                <div className="absolute top-full left-0 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="p-2 space-y-1">
+                    <button 
+                      onClick={() => { setLocation('All Locations'); setShowCityMenu(false); }}
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-gray-50 text-gray-400 uppercase tracking-wider"
+                    >
+                      Clear Filter
+                    </button>
+                    {INDIAN_CITIES
+                      .filter(c => c.toLowerCase().includes(location === 'All Locations' ? '' : location.toLowerCase()))
+                      .slice(0, 50) // Optimization: limit display
+                      .map(city => (
+                        <button
+                          key={city}
+                          onClick={() => { setLocation(city); setShowCityMenu(false); }}
+                          className="w-full text-left px-3 py-2 rounded-xl text-sm font-medium hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                        >
+                          {city}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Price Range Filter */}
+            {viewMode === 'produce' && (
+              <div className="bg-[#e0e3e5] rounded-2xl px-4 py-3">
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{t('market.price_range')}</label>
+                <select
+                  className="w-full bg-transparent border-none outline-none text-sm font-semibold text-[#191c1e] cursor-pointer"
+                  value={priceRange}
+                  onChange={e => setPriceRange(e.target.value)}
+                >
+                  {PRICE_RANGES.map(o => <option key={o}>{o}</option>)}
+                </select>
+              </div>
+            )}
+
+            {/* Verified Only Toggle */}
             <div className="bg-[#e0e3e5] rounded-2xl px-4 py-3 flex items-center justify-between">
               <div>
                 <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{t('dashboard.verified')}</label>
@@ -200,13 +380,16 @@ export default function Browse() {
                 <div className="col-span-full text-center py-16 text-gray-400">
                   <span className="material-symbols-outlined block text-5xl mb-3">search_off</span>
                   <p className="font-semibold mb-1">
-                    {batches.length === 0 ? 'No listings available yet.' : 'No listings match your filters.'}
+                    {viewMode === 'produce'
+                      ? (batches.length === 0 ? 'No listings available yet.' : 'No listings match your filters.')
+                      : (farmers.length === 0 ? 'No farmers registered yet.' : 'No farmers match your filters.')
+                    }
                   </p>
-                  {batches.length === 0 && (
+                  {viewMode === 'produce' && batches.length === 0 && (
                     <p className="text-sm text-gray-400">Farmers haven't listed any produce yet. Check back soon.</p>
                   )}
                 </div>
-              ) : filtered.map(l => {
+              ) : viewMode === 'produce' ? (filtered as Batch[]).map(l => {
                 const cropLower = l.crop.toLowerCase()
                 const imgSrc = l.images?.[0]?.image_url ||
                   (cropLower.includes('tomato') ? '/product_tomatoes.png' :
@@ -221,12 +404,14 @@ export default function Browse() {
 
                     {/* Image */}
                     <div className="relative h-[220px] overflow-hidden">
-                      <img src={imgSrc} alt={l.crop}                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.06]" />
+                      <img src={imgSrc} alt={l.crop} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.06]" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent" />
-                      <div className="absolute top-3 left-3 flex items-center gap-1 bg-white/90 backdrop-blur-sm text-[#006b2c] text-[10px] font-extrabold px-2.5 py-1 rounded-full tracking-wide">
-                        <span className="material-symbols-outlined" style={{ fontSize: 12, fontVariationSettings: "'FILL' 1" }}>verified</span>
-                        VERIFIED
-                      </div>
+                      {l.farmer.is_verified && (
+                        <div className="absolute top-3 left-3 flex items-center gap-1 bg-white/90 backdrop-blur-sm text-[#006b2c] text-[10px] font-extrabold px-2.5 py-1 rounded-full tracking-wide">
+                          <span className="material-symbols-outlined" style={{ fontSize: 12, fontVariationSettings: "'FILL' 1" }}>verified</span>
+                          VERIFIED
+                        </div>
+                      )}
                       <div className="absolute bottom-3 left-3 bg-[#006b2c] text-white text-base font-extrabold px-3.5 py-1 rounded-full">
                         ₹{l.price_per_unit.toLocaleString('en-IN')} <span className="text-[10px] font-normal opacity-80">/ unit</span>
                       </div>
@@ -281,15 +466,15 @@ export default function Browse() {
                       </div>
 
                       <div className="flex items-center justify-between pt-3 border-t border-gray-100 mt-auto">
-                        <div className="flex items-center gap-2">
+                        <Link to={`/profile/${l.farmer.id}`} className="flex items-center gap-2 no-underline group/profile cursor-pointer hover:bg-gray-50 p-1.5 -ml-1.5 rounded-xl transition-colors">
                           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-green-400 text-white text-[13px] font-bold flex items-center justify-center shrink-0">
                             {l.farmer.name[0]}
                           </div>
                           <div>
-                            <div className="text-[12px] font-bold text-[#191c1e]">{l.farmer.name}</div>
-                            <div className="text-[10px] text-gray-400">{l.id.slice(0, 8).toUpperCase()}</div>
+                            <div className="text-[12px] font-bold text-[#191c1e] group-hover/profile:text-blue-700 transition-colors">{l.farmer.name}</div>
+                            <div className="text-[10px] text-gray-400">{l.farmer.id.slice(0, 8).toUpperCase()}</div>
                           </div>
-                        </div>
+                        </Link>
                         <Link
                           to={`/market/batch/${l.id}`}
                           className="bg-blue-700 text-white px-4 py-2 rounded-full text-[12px] font-bold hover:bg-blue-900 transition-all cursor-pointer whitespace-nowrap border-none no-underline">
@@ -297,6 +482,61 @@ export default function Browse() {
                         </Link>
                       </div>
                     </div>
+                  </div>
+                )
+              }) : (filtered as Farmer[]).map(f => {
+                return (
+                  <div key={f.id}
+                    className="group bg-white rounded-[28px] p-6 flex flex-col border border-gray-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(0,0,0,0.09)]">
+                    
+                    <Link to={`/profile/${f.id}`} className="flex items-start gap-4 mb-4 no-underline group/link">
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-green-400 text-white text-[24px] font-bold flex items-center justify-center shrink-0 group-hover/link:scale-110 transition-transform shadow-md">
+                        {f.name[0]}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-[19px] font-extrabold text-gray-900 leading-tight group-hover/link:text-blue-700 transition-colors">{f.name}</h3>
+                          {f.is_verified && (
+                            <span className="material-symbols-outlined text-[#006b2c]" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>verified</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 text-[12px] text-gray-500 mt-1">
+                          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>location_on</span>
+                          {f.profile?.location || 'Location not specified'}
+                        </div>
+                      </div>
+                    </Link>
+
+                    <div className="flex items-center gap-2 mb-4">
+                      <Stars rating={f.profile?.rating || 4.5} />
+                      <span className="text-[12px] font-medium text-gray-400">({f.profile?.review_count || 12} Reviews)</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 mb-5">
+                      <div className="bg-[#f2f4f6] rounded-xl px-3 py-2.5">
+                        <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Type</span>
+                        <span className="text-[13px] font-semibold text-[#191c1e]">{f.profile?.farmer_type || 'Mixed Crops'}</span>
+                      </div>
+                      <div className="bg-[#f2f4f6] rounded-xl px-3 py-2.5">
+                        <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Listings</span>
+                        <span className="text-[13px] font-semibold text-[#191c1e]">{f.active_listings?.length || 0} Active</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-auto flex justify-between gap-2">
+                      <Link
+                        to={`/profile/${f.id}`}
+                        className="flex-1 text-center bg-gray-100 text-gray-800 px-4 py-2.5 rounded-full text-[13px] font-bold hover:bg-gray-200 transition-all border-none no-underline flex items-center justify-center gap-1"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>person</span>
+                        View Profile
+                      </Link>
+                      <button className="flex-1 bg-blue-700 text-white px-4 py-2.5 rounded-full text-[13px] font-bold hover:bg-blue-900 transition-all cursor-pointer border-none flex items-center justify-center gap-1">
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>chat</span>
+                        Message
+                      </button>
+                    </div>
+
                   </div>
                 )
               })}

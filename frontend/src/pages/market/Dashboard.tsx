@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { API, authHeaders } from '../../lib/api';
 
@@ -7,7 +7,7 @@ interface Order {
   total_amount: number;
   status: string;
   created_at: string;
-  batch: { crop: string; farmer: { name: string } };
+  batch: { id: string; crop: string; farmer: { id: string; name: string } };
 }
 
 export default function MarketDashboard() {
@@ -114,9 +114,12 @@ export default function MarketDashboard() {
                   <span className="font-extrabold text-sm sm:text-base text-gray-900">₹{order.total_amount.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs sm:text-sm">
-                  <span className="text-gray-500 flex items-center gap-1 truncate max-w-[120px] sm:max-w-none">
-                    <span className="material-symbols-outlined text-[12px] sm:text-[14px]">person</span> <span className="truncate">{order.batch?.farmer?.name || 'Unknown'}</span>
-                  </span>
+                  <Link to={`/profile/${order.batch?.farmer?.id}`} className="text-gray-500 hover:text-primary-700 transition-colors flex items-center gap-2 truncate max-w-[150px] sm:max-w-none no-underline group/farmer">
+                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-green-500 to-green-600 text-white text-[9px] font-bold flex items-center justify-center shrink-0 group-hover/farmer:scale-110 transition-transform">
+                      {(order.batch?.farmer?.name || 'U')[0]}
+                    </div>
+                    <span className="truncate font-medium">{order.batch?.farmer?.name || 'Unknown'}</span>
+                  </Link>
                   <span className={`px-2 py-0.5 sm:py-1 rounded-md text-[9px] sm:text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${
                     order.status === 'DELIVERED' ? 'bg-green-100 text-green-700' :
                     order.status === 'IN_TRANSIT' ? 'bg-blue-100 text-blue-700' :

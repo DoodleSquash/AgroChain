@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { API } from '../../lib/api';
+import { API, apiFetch } from '../../lib/api';
 
 interface AIInsight {
   crop: string;
@@ -25,10 +25,7 @@ const AIPriceAdvisor = () => {
         };
         const currentLangName = languageMap[i18n.language] || 'English';
         
-        const res = await fetch(`${API}/ai/market-prices?lang=${currentLangName}`);
-        const data = await res.json();
-        
-        if (!res.ok) throw new Error(data.error || 'Failed to fetch AI insights');
+        const data = await apiFetch<any>(`/ai/market-prices?lang=${currentLangName}`);
         
         setInsights(data.insights || []);
       } catch (err: any) {

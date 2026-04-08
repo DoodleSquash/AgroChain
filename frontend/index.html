@@ -12,6 +12,59 @@
   </head>
   <body>
     <div id="root"></div>
+    <div id="google_translate_element" style="display:none;"></div>
+    <script type="text/javascript">
+      function googleTranslateElementInit() {
+        new google.translate.TranslateElement({
+          pageLanguage: 'en',
+          autoDisplay: false
+        }, 'google_translate_element');
+      }
+    </script>
+    <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+    <script type="text/javascript">
+      // Protect standalone numbers, symbols, and Material Icons from being translated
+      const protectNode = (node) => {
+        if (node.nodeType !== 1) return;
+        
+        // 1. Protect Material Icons from breaking (since their text content represents an icon glyph)
+        if (node.classList && node.classList.contains('material-symbols-outlined')) {
+          node.classList.add('notranslate');
+          node.setAttribute('translate', 'no');
+        }
+
+        if (node.textContent) {
+          const txt = node.textContent.trim();
+          if (!txt) return;
+
+          // 2. Protect standalone Numbers, Currencies, and short alphanumeric Reference IDs (e.g., #AG-2041)
+          if (/^[\s₹$€+-]*#?[A-Z0-9-]*[\d.,]+[A-Z0-9%kKmM]*\s*$/.test(txt)) {
+            node.classList.add('notranslate');
+          }
+          // 3. Protect standalone Emojis, math operators, and Punctuation (e.g. 🌿, →, ✅, —, ·)
+          else if (/^[\p{Emoji}\p{So}\p{Po}\p{Sm}\s]+$/u.test(txt)) {
+            node.classList.add('notranslate');
+          }
+        }
+
+        // Recursively protect children just in case
+        if (node.childNodes && node.childNodes.length > 0) {
+          node.childNodes.forEach(protectNode);
+        }
+      };
+
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          mutation.addedNodes.forEach(protectNode);
+        });
+      });
+      observer.observe(document, { childList: true, subtree: true });
+
+      // Run once immediately on load for the existing DOM
+      document.addEventListener('DOMContentLoaded', () => {
+         document.body.childNodes.forEach(protectNode);
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

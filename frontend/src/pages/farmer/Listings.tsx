@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';import { Link } from 'react-router-dom';
-import { API, authHeaders } from '../../lib/api';
+import { useEffect, useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
+import { API, authHeaders, apiFetch } from '../../lib/api';
+import { useVoice } from '../../context/VoiceContext';
 interface Batch {
   id: string
   crop: string
@@ -45,14 +47,18 @@ function QRModal({ batch, onClose }: { batch: Batch; onClose: () => void }) {
   const [loading, setLoading]     = useState(true);
 
   useEffect(() => {
-    fetch(`${API}/farmers/batches/${batch.id}/qr`, { headers: authHeaders() as HeadersInit })
-      .then(r => r.json())
-      .then(d => {
+    const fetchQR = async () => {
+      try {
+        const d = await apiFetch<any>(`/farmers/batches/${batch.id}/qr`);
         setQrDataUrl(d.qr_data_url);
-        // Always use current origin so it works in dev and prod
         setTraceUrl(`${window.location.origin}/trace/${batch.id}`);
-      })
-      .finally(() => setLoading(false));
+      } catch (err) {
+        console.error('QR Fetch Error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchQR();
   }, [batch.id]);
 
   return (
@@ -96,7 +102,6 @@ function QRModal({ batch, onClose }: { batch: Batch; onClose: () => void }) {
   );
 }
 
-import { useRef } from 'react';
 
 // ── Edit Modal ────────────────────────────────────────────────────────────────
 function EditModal({ batch, onClose, onSaved }: {
@@ -137,9 +142,10 @@ function EditModal({ batch, onClose, onSaved }: {
     for (const file of imageFiles) {
       const form = new FormData();
       form.append('file', file);
+      const headers = authHeaders() as any;
       const res = await fetch(`${API}/upload?folder=batches`, {
         method: 'POST',
-        headers: { Authorization: (authHeaders() as Record<string, string>).Authorization },
+        headers: { 'Authorization': headers['Authorization'] || headers['authorization'] },
         body: form,
       });
       const data = await res.json();
@@ -152,24 +158,27 @@ function EditModal({ batch, onClose, onSaved }: {
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true); setErr('');
+    if (Number(quantity) <= 0) {
+      setErr('Quantity must be greater than zero.');
+      setSaving(false);
+      return;
+    }
+
     try {
       setUploading(true);
       const new_images = imageFiles.length > 0 ? await uploadImages() : [];
       setUploading(false);
 
-      const res = await fetch(`${API}/farmers/batches/${batch.id}`, {
+      const data = await apiFetch<any>(`/farmers/batches/${batch.id}`, {
         method: 'PUT',
-        headers: authHeaders() as HeadersInit,
         body: JSON.stringify({
           price_per_unit: Number(price),
           quantity: Number(quantity),
           location,
           status,
-          new_images,
+          new_images: new_images,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
       onSaved({ ...batch, price_per_unit: Number(price), quantity: Number(quantity), location, status, images: data.images || batch.images });
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : 'Failed to save');
@@ -266,22 +275,64 @@ export default function Listings() {
   const [tab, setTab]           = useState('ALL');
   const [editing, setEditing]   = useState<Batch | null>(null);
   const [qrBatch, setQrBatch]   = useState<Batch | null>(null);
+  const [voiceToast, setVoiceToast] = useState<string | null>(null);
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
+  const showVoiceToast = (msg: string) => {
+    setVoiceToast(msg);
+    setTimeout(() => setVoiceToast(null), 4000);
+  };
+
+  // ── Voice Control ──
+  const voiceContext = `
+PAGE_CONTEXT: My Listings
+Data:
+- Total Listings: ${batches.length}
+- Live/Active: ${batches.filter(b => b.status === 'ACTIVE').length}
+- Sold: ${batches.filter(b => b.status === 'SOLD').length}
+
+Listings available:
+${batches.map(b => `- ${b.crop} (Qty: ${b.quantity}kg, Status: ${b.status}, Price: ₹${b.price_per_unit})`).join('\n')}
+
+Supported actions schema:
+{
+  "action": "FILTER_LISTINGS",
+  "fields": {
+    "search": "crop name to search or null",
+    "tab": "ALL" | "ACTIVE" | "SOLD" | "EXPIRED" or null
+  }
+}
+  `.trim();
+
+  const handleVoiceIntent = (intent: any) => {
+    if (!intent) return;
+    if (intent.action === 'FILTER_LISTINGS') {
+      const { search: newSearch, tab: newTab } = intent.fields;
+      if (typeof newSearch === 'string') setSearch(newSearch);
+      if (newTab) setTab(newTab);
+      showVoiceToast('✅ Applied filters');
+    }
+  };
+
+  useVoice(voiceContext, handleVoiceIntent);
+
   useEffect(() => {
     if (!user.id) { setError('Not logged in'); setLoading(false); return; }
-    fetch(`${API}/farmers/batches?farmer_id=${user.id}`, { headers: authHeaders() as HeadersInit })
-      .then(r => r.json())
-      .then(d => { if (d.error) throw new Error(d.error); setBatches(d); })
+    apiFetch<Batch[]>(`/farmers/batches?farmer_id=${user.id}`)
+      .then(d => setBatches(d))
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [user.id]);
 
   const deleteBatch = async (id: string) => {
     if (!confirm('Delete this listing?')) return;
-    await fetch(`${API}/farmers/batches/${id}`, { method: 'DELETE', headers: authHeaders() as HeadersInit });
-    setBatches(prev => prev.filter(b => b.id !== id));
+    try {
+      await apiFetch(`/farmers/batches/${id}`, { method: 'DELETE' });
+      setBatches(prev => prev.filter(b => b.id !== id));
+    } catch (err: any) {
+      alert(err.message || 'Delete failed');
+    }
   };
 
   const filtered = batches.filter(b => {
@@ -323,6 +374,14 @@ export default function Listings() {
       )}
 
       {qrBatch && <QRModal batch={qrBatch} onClose={() => setQrBatch(null)} />}
+
+      {/* Voice Action Toast */}
+      {voiceToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[9998] bg-gray-900/95 text-white text-sm font-semibold px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 animate-slideUp">
+          <span className="material-symbols-outlined text-[18px] text-green-400">mic</span>
+          {voiceToast}
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-5">

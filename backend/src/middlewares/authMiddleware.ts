@@ -13,6 +13,7 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.warn('[AuthMiddleware] Missing or invalid Bearer token format. Header:', authHeader);
     res.status(401).json({ error: 'Unauthorized: Missing or invalid token format.' });
     return;
   }
@@ -21,6 +22,7 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
   const decoded = verifyToken(token);
 
   if (!decoded) {
+    console.warn('[AuthMiddleware] Token verification failed for token suffix:', token.slice(-5));
     res.status(401).json({ error: 'Unauthorized: Invalid or expired token.' });
     return;
   }

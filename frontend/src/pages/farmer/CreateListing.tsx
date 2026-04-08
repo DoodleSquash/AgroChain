@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API, authHeaders } from '../../lib/api';
+import { useVoice } from '../../context/VoiceContext';
 
 const CROPS = ['Wheat', 'Rice (Paddy)', 'Sweet Corn', 'Potatoes', 'Tomatoes',
                'Onions', 'Spinach', 'Berries', 'Mangoes', 'Tulsi', 'Milk', 'Other'];
@@ -11,6 +12,7 @@ export default function CreateListing() {
 
   // Form state
   const [crop, setCrop]             = useState('');
+  const [category, setCategory]     = useState('Vegetables');
   const [quantity, setQuantity]     = useState('');
   const [price, setPrice]           = useState('');
   const [location, setLocation]     = useState('');
@@ -27,6 +29,86 @@ export default function CreateListing() {
   // Submit state
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState('');
+  const [voiceToast, setVoiceToast] = useState<string | null>(null);
+
+  // Refs for tracking current state during async voice callbacks
+  const cropRef = useRef(crop);
+  const categoryRef = useRef(category);
+  const quantityRef = useRef(quantity);
+  const priceRef = useRef(price);
+  const locationRef = useRef(location);
+  const harvestRef = useRef(harvestDate);
+
+  React.useEffect(() => { cropRef.current = crop; }, [crop]);
+  React.useEffect(() => { categoryRef.current = category; }, [category]);
+  React.useEffect(() => { quantityRef.current = quantity; }, [quantity]);
+  React.useEffect(() => { priceRef.current = price; }, [price]);
+  React.useEffect(() => { locationRef.current = location; }, [location]);
+  React.useEffect(() => { harvestRef.current = harvestDate; }, [harvestDate]);
+
+  const showVoiceToast = (msg: string) => {
+    setVoiceToast(msg);
+    setTimeout(() => setVoiceToast(null), 4000);
+  };
+
+  // ── Voice Control ──
+  const voiceContext = `
+PAGE_CONTEXT: Create New Listing
+Form State:
+- Crop Type (Required): ${crop || 'Not set'}
+- Category (Required): ${category || 'Vegetables'}
+- Quantity (Required): ${quantity ? quantity + ' kg' : 'Not set'}
+- Price (Required): ${price ? '₹' + price : 'Not set'}
+- Location: ${location || 'Not set'}
+- Harvest Date (Required): ${harvestDate || 'Not set'}
+
+Available Crop Dropdown Options: ${CROPS.join(', ')}
+Available Categories: Vegetables, Fruits, Grains, Dairy, Herbs, Other
+(Suggest these to the user if they ask what options they have or what they should sell)
+
+Supported actions schema:
+{
+  "action": "SET_FIELDS" | "SUBMIT_LISTING",
+  "fields": {
+    "crop": "crop name or null (e.g. Tomatoes)",
+    "category": "category or null (e.g. Vegetables)",
+    "quantity": "number or null",
+    "price": "number or null",
+    "location": "location string or null",
+    "harvestDate": "YYYY-MM-DD or null"
+  }
+}
+
+IMPORTANT: Do NOT use "SUBMIT_LISTING" action UNLESS all required fields are filled. If required fields are missing, use "SET_FIELDS" and ask the user for the remaining information first.
+  `.trim();
+
+  const handleVoiceIntent = React.useCallback((intent: any) => {
+    if (!intent) return;
+    const applyFields = (f: any) => {
+      if (!f) return;
+      if (f.crop) setCrop(f.crop);
+      if (f.category) setCategory(f.category);
+      if (f.quantity) setQuantity(String(f.quantity));
+      if (f.price) setPrice(String(f.price));
+      if (f.location) setLocation(f.location);
+      if (f.harvestDate) setHarvest(f.harvestDate);
+    };
+
+    if (intent.action === 'SET_FIELDS') {
+      applyFields(intent.fields);
+      showVoiceToast('✅ Form updated via voice');
+    } else if (intent.action === 'SUBMIT_LISTING') {
+      applyFields(intent.fields);
+      showVoiceToast('⏳ Preparing to submit...');
+      setTimeout(() => {
+        // Trigger the form submit programmatically
+        const f = document.getElementById('listing-form');
+        if (f) f.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      }, 500);
+    }
+  }, []);
+
+  useVoice(voiceContext, handleVoiceIntent);
 
   const toggleBadge = (b: string) =>
     setBadges(prev => prev.includes(b) ? prev.filter(x => x !== b) : [...prev, b]);
@@ -52,9 +134,10 @@ export default function CreateListing() {
     for (const file of imageFiles) {
       const form = new FormData();
       form.append('file', file);
+      const headers = authHeaders() as any;
       const res = await fetch(`${API}/upload?folder=batches`, {
         method: 'POST',
-        headers: { Authorization: (authHeaders() as Record<string, string>).Authorization },
+        headers: { 'Authorization': headers['Authorization'] || headers['authorization'] },
         body: form,
       });
       const data = await res.json();
@@ -70,6 +153,11 @@ export default function CreateListing() {
 
     if (!crop || !quantity || !price || !harvestDate) {
       setError('Please fill in all required fields.');
+      return;
+    }
+
+    if (Number(quantity) <= 0) {
+      setError('Quantity must be greater than zero.');
       return;
     }
 
@@ -90,11 +178,13 @@ export default function CreateListing() {
         body: JSON.stringify({
           farmer_id:      user.id,
           crop,
+          category,
           quantity:       Number(quantity),
           price_per_unit: Number(price),
           harvest_date:   harvestDate,
           expiry_date:    expiryDate || null,
           location,
+          badges,
           images:         imageUrls,
         }),
       });
@@ -125,6 +215,14 @@ export default function CreateListing() {
         </div>
       </div>
 
+      {/* Voice Action Toast */}
+      {voiceToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[9998] bg-gray-900/95 text-white text-sm font-semibold px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 animate-slideUp">
+          <span className="material-symbols-outlined text-[18px] text-green-400">mic</span>
+          {voiceToast}
+        </div>
+      )}
+
       <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/10 shadow-sm overflow-hidden">
         <div className="h-2 sm:h-3 md:h-4 bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600" />
 
@@ -136,7 +234,7 @@ export default function CreateListing() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form id="listing-form" onSubmit={handleSubmit} className="space-y-8">
 
             {/* 1. Basic Info */}
             <section>
@@ -154,6 +252,25 @@ export default function CreateListing() {
                       className="w-full pl-10 pr-4 py-3 bg-white border border-outline-variant/30 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all appearance-none text-on-surface">
                       <option value="">Select crop</option>
                       {CROPS.map(c => <option key={c} value={c}>{c}</option>)}
+                      {crop && !CROPS.includes(crop) && <option value={crop}>{crop}</option>}
+                    </select>
+                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant/50">keyboard_arrow_down</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-on-surface-variant">Category <span className="text-red-500">*</span></label>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50">category</span>
+                    <select required value={category} onChange={e => setCategory(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 bg-white border border-outline-variant/30 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all appearance-none text-on-surface">
+                      <option value="Vegetables">Vegetables</option>
+                      <option value="Fruits">Fruits</option>
+                      <option value="Grains">Grains</option>
+                      <option value="Dairy">Dairy</option>
+                      <option value="Herbs">Herbs</option>
+                      <option value="Other">Other</option>
+                      {category && !['Vegetables','Fruits','Grains','Dairy','Herbs','Other'].includes(category) && <option value={category}>{category}</option>}
                     </select>
                     <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant/50">keyboard_arrow_down</span>
                   </div>

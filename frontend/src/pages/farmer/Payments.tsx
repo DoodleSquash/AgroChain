@@ -1,6 +1,63 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
+import { apiFetch } from '../../lib/api';
+import { useVoice } from '../../context/VoiceContext';
+
+interface PaymentData {
+  totalEarnings: number;
+  pendingPayments: number;
+  releasedPayments: number;
+  accounts: any[];
+}
 
 export default function Payments() {
+  const [data, setData] = useState<PaymentData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+  useEffect(() => {
+    const fetchPayments = async () => {
+      try {
+        const res = await apiFetch<PaymentData>(`/farmers/payments?farmer_id=${user.id}`);
+        setData(res);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (user.id) {
+      fetchPayments();
+    } else {
+      setLoading(false);
+      setError('User session not found. Please log in again.');
+    }
+  }, [user.id]);
+
+  // ── Voice Control ──
+  const voiceContext = `
+PAGE_CONTEXT: Payments & Yield (Escrow)
+Data:
+- Wallet Balance (Released): ₹${data?.releasedPayments || 0}
+- Pending in Escrow: ₹${data?.pendingPayments || 0}
+- Total Contract Value: ₹${data?.totalEarnings || 0}
+
+Transactions (${data?.accounts?.length || 0}):
+${(data?.accounts || []).slice(0, 5).map((a: any) => `- Escrow for ${a.order?.batch?.crop}: ₹${a.total_amount} (Status: ${a.status})`).join('\n')}
+
+No interactable actions available. Just answer questions based on this data.
+  `.trim();
+
+  useVoice(voiceContext, () => {});
+
+  if (loading) return (
+    <div className="p-10 text-center animate-pulse">
+       <span className="material-symbols-outlined text-[48px] text-primary-200">payments</span>
+       <p className="text-on-surface-variant font-bold mt-2">Loading Financial Data...</p>
+    </div>
+  );
+
   return (
     <div className="p-6 md:p-10 max-w-[1400px] mx-auto space-y-8">
       
@@ -30,38 +87,38 @@ export default function Payments() {
             <div className="flex items-center gap-2 text-primary-100 font-medium mb-1.5 sm:mb-2 text-sm sm:text-base">
               <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span> Available Balance
             </div>
-            <div className="text-3xl sm:text-4xl md:text-5xl font-extrabold font-headline tracking-tight leading-none">₹1,24,500</div>
+            <div className="text-3xl sm:text-4xl md:text-5xl font-extrabold font-headline tracking-tight leading-none">₹{data?.releasedPayments.toLocaleString('en-IN') || '0'}</div>
           </div>
           
           <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 border-t border-primary-400/30 flex justify-between items-center text-[10px] sm:text-sm">
-            <span className="text-primary-100 italic">Last withdrawal: 2 days ago</span>
-            <span className="font-bold flex items-center gap-1">₹45,000 <span className="material-symbols-outlined text-[14px]">arrow_upward</span></span>
+            <span className="text-primary-100 italic">Available for withdrawal</span>
+            <span className="font-bold flex items-center gap-1">Net Earnings</span>
           </div>
         </div>
 
         <div className="md:col-span-2 grid grid-cols-2 sm:grid-cols-2 gap-4 sm:gap-6">
            <div className="bg-surface-container-lowest p-5 sm:p-6 flex flex-col justify-center rounded-3xl border border-outline-variant/10 shadow-sm relative overflow-hidden group hover:border-blue-200 transition-colors">
               <div className="absolute right-0 top-0 w-12 sm:w-16 h-full bg-gradient-to-l from-blue-50 to-transparent"></div>
-              <div className="text-on-surface-variant text-[11px] sm:text-sm font-bold flex items-center gap-2 mb-1.5 sm:mb-2 text-balance	">
+              <div className="text-on-surface-variant text-[11px] sm:text-sm font-bold flex items-center gap-2 mb-1.5 sm:mb-2 text-balance">
                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
                     <span className="material-symbols-outlined text-[14px] sm:text-[16px]">lock_clock</span>
                  </div>
                  Pending in Escrow
               </div>
-              <div className="text-xl sm:text-3xl font-extrabold font-headline text-on-surface leading-none">₹45,200</div>
+              <div className="text-xl sm:text-3xl font-extrabold font-headline text-on-surface leading-none">₹{data?.pendingPayments.toLocaleString('en-IN') || '0'}</div>
               <p className="text-[9px] sm:text-xs text-on-surface-variant mt-2 font-medium opacity-70">Auto-release on delivery</p>
            </div>
            
            <div className="bg-surface-container-lowest p-5 sm:p-6 flex flex-col justify-center rounded-3xl border border-outline-variant/10 shadow-sm relative overflow-hidden group hover:border-amber-200 transition-colors">
               <div className="absolute right-0 top-0 w-12 sm:w-16 h-full bg-gradient-to-l from-amber-50 to-transparent"></div>
-              <div className="text-on-surface-variant text-[11px] sm:text-sm font-bold flex items-center gap-2 mb-1.5 sm:mb-2 text-balance	">
+              <div className="text-on-surface-variant text-[11px] sm:text-sm font-bold flex items-center gap-2 mb-1.5 sm:mb-2">
                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 flex-shrink-0">
-                    <span className="material-symbols-outlined text-[14px] sm:text-[16px]">upcoming</span>
+                    <span className="material-symbols-outlined text-[14px] sm:text-[16px]">payments</span>
                  </div>
-                 Next Payout
+                 Total Contract Value
               </div>
-              <div className="text-xl sm:text-3xl font-extrabold font-headline text-on-surface leading-none">12 Apr 2026</div>
-              <p className="text-[9px] sm:text-xs font-bold text-amber-600 mt-2 truncate">Est: ₹14,200</p>
+              <div className="text-xl sm:text-3xl font-extrabold font-headline text-on-surface leading-none">₹{data?.totalEarnings.toLocaleString('en-IN') || '0'}</div>
+              <p className="text-[9px] sm:text-xs font-bold text-amber-600 mt-2 truncate">Cumulative order value</p>
            </div>
         </div>
       </div>
@@ -82,73 +139,59 @@ export default function Payments() {
                   <thead className="text-[10px] font-black tracking-wider uppercase text-on-surface-variant/70 border-b border-outline-variant/5">
                      <tr>
                         <th className="px-5 py-3">Transaction</th>
-                        <th className="px-5 py-3">Date</th>
                         <th className="px-5 py-3">Status</th>
                         <th className="px-5 py-3 text-right">Amount</th>
                      </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant/5">
-                     {[
-                        { title: 'Escrow Release', desc: 'Order #ORD-8799 Delivered', date: 'Today, 10:45 AM', type: 'credit', amount: '+ ₹9,600', status: 'Completed', sColor: 'text-green-600 bg-green-50' },
-                        { title: 'Bank Withdrawal', desc: 'To HDFC Bank ****1234', date: '08 Apr 2026', type: 'debit', amount: '- ₹45,000', status: 'Completed', sColor: 'text-green-600 bg-green-50' },
-                        { title: 'Escrow Locked', desc: 'New Order #ORD-8821', date: '07 Apr 2026', type: 'hold', amount: '₹14,200', status: 'In Escrow', sColor: 'text-blue-600 bg-blue-50' },
-                        { title: 'Escrow Release', desc: 'Order #ORD-8750 Delivered', date: '05 Apr 2026', type: 'credit', amount: '+ ₹22,000', status: 'Completed', sColor: 'text-green-600 bg-green-50' },
-                        { title: 'Escrow Locked', desc: 'New Order #ORD-8845', date: '04 Apr 2026', type: 'hold', amount: '₹3,800', status: 'In Escrow', sColor: 'text-blue-600 bg-blue-50' },
-                     ].map((t, i) => (
+                     {data?.accounts.length === 0 && (
+                        <tr><td colSpan={3} className="p-10 text-center text-on-surface-variant italic">No escrow records found.</td></tr>
+                     )}
+                     {data?.accounts.map((acc, i) => (
                         <tr key={i} className="hover:bg-surface-container-low/30 transition-colors">
                            <td className="px-5 py-3.5">
                               <div className="flex items-center gap-3">
-                                 <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 
-                                    ${t.type === 'credit' ? 'bg-green-100 text-green-600' : t.type === 'debit' ? 'bg-zinc-100 text-zinc-600' : 'bg-blue-100 text-blue-600'}`}>
-                                    <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                                       {t.type === 'credit' ? 'arrow_downward' : t.type === 'debit' ? 'arrow_upward' : 'lock'}
+                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-blue-100 text-blue-600`}>
+                                    <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                       lock
                                     </span>
                                  </div>
-                                 <div className="min-w-0">
-                                    <p className="font-bold text-sm text-on-surface truncate">{t.title}</p>
-                                    <p className="text-[11px] text-on-surface-variant truncate w-40 md:w-auto">{t.desc}</p>
+                                 <div>
+                                    <p className="font-bold text-sm text-on-surface">Escrow for {acc.order?.batch?.crop || 'Crop'}</p>
+                                    <p className="text-xs text-on-surface-variant truncate w-40 sm:w-auto">Order ID: {acc.order?.id.slice(0, 8)}</p>
                                  </div>
-                              </div>
-                           </td>
-                           <td className="px-5 py-3.5 text-[11px] font-medium text-on-surface-variant">
-                              <div className="flex items-center gap-1.5 opacity-70">
-                                <span className="material-symbols-outlined text-[12px]">calendar_today</span> {t.date}
                               </div>
                            </td>
                            <td className="px-5 py-3.5">
-                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wide inline-block ${t.sColor}`}>{t.status}</span>
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wide inline-block ${acc.status === 'COMPLETED' ? 'text-green-600 bg-green-50' : 'text-blue-600 bg-blue-50'}`}>
+                                 {acc.status === 'COMPLETED' ? 'Transferred' : acc.status}
+                              </span>
                            </td>
-                           <td className={`px-5 py-3.5 text-right font-extrabold text-sm ${t.type === 'credit' ? 'text-green-600' : t.type === 'debit' ? 'text-on-surface' : 'text-blue-600'}`}>
-                              {t.amount}
+                           <td className={`px-5 py-3.5 text-right font-extrabold text-sm text-on-surface`}>
+                              ₹{acc.total_amount.toLocaleString('en-IN')}
                            </td>
                         </tr>
                      ))}
                   </tbody>
                </table>
 
-               {/* Mobile List View */}
                <div className="sm:hidden divide-y divide-outline-variant/5">
-                  {[
-                     { title: 'Escrow Release', desc: '#ORD-8799 Delivered', date: 'Today, 10:45 AM', type: 'credit', amount: '+ ₹9,600', status: 'Completed', sColor: 'text-green-600 bg-green-50' },
-                     { title: 'Bank Withdrawal', desc: 'HDFC ****1234', date: '08 Apr 2026', type: 'debit', amount: '- ₹45,000', status: 'Completed', sColor: 'text-green-600 bg-green-50' },
-                     { title: 'Escrow Locked', desc: 'New #ORD-8821', date: '07 Apr 2026', type: 'hold', amount: '₹14,200', status: 'In Escrow', sColor: 'text-blue-600 bg-blue-50' },
-                  ].map((t, i) => (
+                  {data?.accounts.map((acc, i) => (
                     <div key={i} className="p-4 flex items-center justify-between hover:bg-surface-container-low/30 transition-colors">
                        <div className="flex items-center gap-3 min-w-0">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 
-                             ${t.type === 'credit' ? 'bg-green-100 text-green-600' : t.type === 'debit' ? 'bg-zinc-100 text-zinc-600' : 'bg-blue-100 text-blue-600'}`}>
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-blue-100 text-blue-600`}>
                              <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                                {t.type === 'credit' ? 'arrow_downward' : t.type === 'debit' ? 'arrow_upward' : 'lock'}
+                                lock
                              </span>
                           </div>
                           <div className="min-w-0">
-                             <p className="font-bold text-xs text-on-surface truncate">{t.title}</p>
-                             <p className="text-[10px] text-on-surface-variant truncate">{t.date}</p>
+                             <p className="font-bold text-xs text-on-surface truncate">Escrow: {acc.order?.batch?.crop}</p>
+                             <p className="text-[10px] text-on-surface-variant truncate">Order: #{acc.order?.id.slice(0, 8)}</p>
                           </div>
                        </div>
                        <div className="text-right">
-                          <p className={`font-black text-xs ${t.type === 'credit' ? 'text-green-600' : t.type === 'debit' ? 'text-on-surface' : 'text-blue-600'}`}>{t.amount}</p>
-                          <span className={`text-[9px] font-black uppercase tracking-tight px-1.5 py-0.5 rounded ${t.sColor}`}>{t.status}</span>
+                          <p className="font-black text-xs text-on-surface">₹{acc.total_amount.toLocaleString('en-IN')}</p>
+                          <span className={`text-[9px] font-black uppercase tracking-tight px-1.5 py-0.5 rounded ${acc.status === 'COMPLETED' ? 'text-green-600 bg-green-50' : 'text-blue-600 bg-blue-50'}`}>{acc.status}</span>
                        </div>
                     </div>
                   ))}
@@ -168,41 +211,17 @@ export default function Payments() {
                      🏦
                   </div>
                   <div className="flex-1">
-                     <p className="text-sm font-bold text-on-surface flex items-center gap-1">HDFC Bank <span className="material-symbols-outlined text-green-600 text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span></p>
-                     <p className="text-xs text-on-surface-variant font-mono">**** **** 1234</p>
+                     <p className="text-sm font-bold text-on-surface flex items-center gap-1">Primary Account <span className="material-symbols-outlined text-green-600 text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span></p>
+                     <p className="text-xs text-on-surface-variant font-mono">Linked Bank Details</p>
                   </div>
-                  <button className="text-primary-600 hover:bg-primary-50 p-2 rounded-full transition-colors flex items-center justify-center">
-                     <span className="material-symbols-outlined text-[18px]">edit</span>
-                  </button>
                </div>
                
                <button className="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-outline-variant/30 text-sm font-bold text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors">
-                  <span className="material-symbols-outlined">add</span> Add New Account
+                  <span className="material-symbols-outlined">add</span> Update Account
                </button>
-            </div>
-
-            {/* Income breakdown (Placeholder chart) */}
-            <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/10 shadow-sm p-6">
-               <h3 className="text-base font-bold font-headline text-on-surface mb-4">Earnings Breakdown</h3>
-               
-               <div className="h-40 flex items-end justify-between gap-2 border-b border-outline-variant/10 pb-2">
-                  {/* Mock bar chart bars */}
-                  {[30, 45, 25, 60, 80, 50, 100].map((h, i) => (
-                     <div key={i} className="w-full bg-primary-100 rounded-t-lg relative group transition-all hover:bg-primary-200" style={{ height: `${h}%` }}>
-                        <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-on-surface text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                           ₹{h * 100}
-                        </div>
-                     </div>
-                  ))}
-               </div>
-               <div className="flex justify-between mt-2 text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest">
-                  <span>Mon</span><span>Wed</span><span>Fri</span><span>Sun</span>
-               </div>
-               
             </div>
          </div>
       </div>
-      
     </div>
   );
 }

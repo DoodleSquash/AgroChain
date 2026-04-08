@@ -134,19 +134,26 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
 
 export const createListing = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { farmer_id, crop, quantity, price_per_unit, harvest_date, expiry_date, location, images } = req.body;
+    const { farmer_id, crop, category, quantity, price_per_unit, harvest_date, expiry_date, location, images, badges } = req.body;
+
+    if (!quantity || Number(quantity) <= 0) {
+      res.status(400).json({ error: 'Quantity must be greater than zero' });
+      return;
+    }
     
     // Create batch first to get the real UUID
     const batch = await prisma.batch.create({
       data: {
         farmer_id,
         crop,
+        category: category || 'Vegetables',
         quantity,
         price_per_unit,
         total_price: quantity * price_per_unit,
         harvest_date: new Date(harvest_date),
         expiry_date: expiry_date ? new Date(expiry_date) : null,
         location,
+        badges: badges || [],
         qr_code_url: '', // placeholder
         images: {
           create: images?.map((url: string) => ({ image_url: url })) || []
@@ -194,7 +201,12 @@ export const getListings = async (req: Request, res: Response): Promise<void> =>
 export const updateListing = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = req.params.id as string;
-    const { status, price_per_unit, quantity, location, new_images } = req.body;
+    const { status, price_per_unit, quantity, location, category, new_images } = req.body;
+
+    if (quantity !== undefined && Number(quantity) <= 0) {
+      res.status(400).json({ error: 'Quantity must be greater than zero' });
+      return;
+    }
     
     const batch = await prisma.batch.update({
       where: { id },
@@ -203,6 +215,7 @@ export const updateListing = async (req: Request, res: Response): Promise<void> 
         price_per_unit, 
         quantity, 
         location,
+        category,
         ...(quantity && price_per_unit && { total_price: quantity * price_per_unit }),
         ...(new_images && Array.isArray(new_images) && new_images.length > 0 && {
           images: {
@@ -315,3 +328,74 @@ export const getQR = async (req: Request, res: Response): Promise<void> => {
      res.status(500).json({ error: String(error) });
    }
 }
+
+export const createHiringJob = async (req: Request, res: Response): Promise<void> => {
+   try {
+     const { farmer_id, title, location, lat, lng, wage, workers_needed, work_date, description } = req.body;
+     
+     const job = await prisma.hiringJob.create({
+       data: {
+         farmer_id,
+         title,
+         location,
+         lat: lat ? parseFloat(lat) : null,
+         lng: lng ? parseFloat(lng) : null,
+         wage,
+         workers_needed: parseInt(workers_needed),
+         work_date: new Date(work_date),
+         description
+       }
+     });
+     
+     res.status(201).json(job);
+   } catch (error) {
+     res.status(500).json({ error: String(error) });
+   }
+};
+
+export const getHiringJobs = async (req: Request, res: Response): Promise<void> => {
+   try {
+     const farmer_id = req.query.farmer_id as string;
+     if (!farmer_id) { res.status(400).json({ error: 'farmer_id required' }); return; }
+     
+     const jobs = await prisma.hiringJob.findMany({
+       where: { farmer_id },
+       include: { applications: true },
+       orderBy: { created_at: 'desc' }
+     });
+     
+     res.json(jobs);
+   } catch (error) {
+     res.status(500).json({ error: String(error) });
+   }
+};
+
+export const deleteHiringJob = async (req: Request, res: Response): Promise<void> => {
+   try {
+     const id = req.params.id as string;
+     await prisma.hiringJob.delete({ where: { id } });
+     res.json({ message: 'Hiring job deleted successfully' });
+   } catch (error) {
+     res.status(500).json({ error: String(error) });
+   }
+};
+
+export const getBuyers = async (req: Request, res: Response): Promise<void> => {
+   try {
+     const buyers = await prisma.user.findMany({
+       where: { role: 'BUYER' },
+       include: {
+         profile: true
+       }
+     });
+
+     const enrichedBuyers = buyers.map(b => {
+       const { otp_code, otp_expiry, ...safeUser } = b;
+       return safeUser;
+     });
+
+     res.json(enrichedBuyers);
+   } catch (error) {
+     res.status(500).json({ error: String(error) });
+   }
+};

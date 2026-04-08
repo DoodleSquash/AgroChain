@@ -1,35 +1,64 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { apiFetch } from '../../lib/api';
+
+function cropImg(crop: string) {
+  const c = (crop || '').toLowerCase();
+  if (c.includes('tomato'))  return '/product_tomatoes.png';
+  if (c.includes('tulsi') || c.includes('spinach')) return '/product_tulsi.png';
+  if (c.includes('milk') || c.includes('dairy'))    return '/product_milk.png';
+  if (c.includes('berry') || c.includes('mango'))   return '/product_berries.png';
+  return '/product_tomatoes.png';
+}
 
 export default function Checkout() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
+  const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [selectedWH, setSelectedWH] = useState('');
+  const [loadingWH, setLoadingWH] = useState(true);
+  
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Expect state passed from BatchDetails: { batchId, quantity, totalAmount, crop }
-  const state = location.state as { batchId?: string; quantity?: number; totalAmount?: number; crop?: string } | null;
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+  useState(() => {
+    apiFetch<any[]>(`/supermarket/warehouses?buyer_id=${user.id}`)
+      .then(setWarehouses)
+      .finally(() => setLoadingWH(false));
+  });
+
+  const state = location.state as { batchId?: string; quantity?: number; totalAmount?: number; crop?: string; imageUrl?: string } | null;
+
+  const crop        = state?.crop        || 'Produce';
+  const quantity    = state?.quantity    || 0;
+  const totalAmount = state?.totalAmount || 0;
+  const batchId     = state?.batchId;
+  const imageUrl    = state?.imageUrl    || cropImg(crop);
+
+  const escrowFee   = Math.round(totalAmount * 0.02);
+  const discount    = Math.round(escrowFee * 0.5);
+  const payable     = totalAmount + escrowFee - discount;
 
   const handlePayment = async () => {
+    if (!selectedWH) {
+      setError('Please select a destination warehouse.');
+      return;
+    }
+
     setIsProcessing(true);
     setError('');
     try {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
       const buyer_id = user.id;
       if (!buyer_id) throw new Error('Please log in to place an order.');
+      if (!batchId)  throw new Error('No batch selected. Go back and select a listing.');
 
-      const batchId   = state?.batchId;
-      const quantity  = state?.quantity || 100;
-      if (!batchId) throw new Error('No batch selected.');
-
-      // 1. Place order
       const order = await apiFetch<{ id: string }>('/supermarket/orders', {
         method: 'POST',
-        body: JSON.stringify({ buyer_id, batch_id: batchId, quantity }),
+        body: JSON.stringify({ buyer_id, batch_id: batchId, quantity, warehouse_id: selectedWH }),
       });
 
-      // 2. Pay (creates escrow)
       await apiFetch(`/supermarket/orders/${order.id}/pay`, { method: 'POST' });
 
       navigate('/market/dashboard');
@@ -45,10 +74,10 @@ export default function Checkout() {
       {/* Header */}
       <div className="mb-6 sm:mb-8 flex items-center justify-between border-b border-gray-100 pb-4 sm:pb-6">
         <div>
-           <Link to="/market/batch/AG-2041" className="text-gray-400 hover:text-gray-900 transition-colors mb-1 sm:mb-2 inline-block">
-               <span className="material-symbols-outlined align-middle mr-1 text-[18px] sm:text-[24px]">arrow_back</span>
-               <span className="align-middle text-xs sm:text-sm font-bold">Back to Listing</span>
-           </Link>
+           <button onClick={() => navigate(-1)} className="text-gray-400 hover:text-gray-900 transition-colors mb-1 sm:mb-2 flex items-center gap-1 bg-transparent border-none cursor-pointer">
+               <span className="material-symbols-outlined text-[18px] sm:text-[24px]">arrow_back</span>
+               <span className="text-xs sm:text-sm font-bold">Back to Listing</span>
+           </button>
            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-900 tracking-tight">Secure Checkout</h1>
         </div>
         <div className="hidden sm:flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-full border border-green-100 shadow-sm">
@@ -57,22 +86,60 @@ export default function Checkout() {
         </div>
       </div>
 
+      {!batchId && (
+        <div className="mb-6 bg-amber-50 border border-amber-200 text-amber-700 rounded-2xl px-5 py-4 text-sm font-medium">
+          No batch selected. <Link to="/market/browse" className="font-bold underline">Go back to marketplace</Link>.
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-12">
-          
+
         {/* Left Col: Order Details */}
         <div className="lg:col-span-7 space-y-6 sm:space-y-8">
+            {/* Warehouse Selection */}
+            <div className="bg-white p-6 sm:p-8 rounded-[2rem] border-2 border-primary-100 shadow-xl shadow-primary-900/5">
+                <h3 className="text-lg font-black text-gray-900 mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary-600">warehouse</span>
+                    Delivery Destination
+                </h3>
+                {loadingWH ? (
+                    <div className="h-12 bg-gray-50 animate-pulse rounded-xl"></div>
+                ) : (
+                    <div className="space-y-3">
+                        {warehouses.length > 0 ? (
+                            <select 
+                                value={selectedWH}
+                                onChange={e => setSelectedWH(e.target.value)}
+                                className="w-full bg-gray-50 border-2 border-black rounded-xl px-4 py-3 font-bold text-sm focus:ring-4 focus:ring-primary-500/10 outline-none appearance-none"
+                            >
+                                <option value="">Select Warehouse</option>
+                                {warehouses.map(wh => (
+                                    <option key={wh.id} value={wh.id}>{wh.name} ({wh.location})</option>
+                                ))}
+                            </select>
+                        ) : (
+                            <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 text-amber-700 text-xs font-bold leading-relaxed">
+                                You haven't added any warehouses yet. <Link to="/market/warehouses" className="underline">Add one now</Link> to proceed with checkout.
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
             <div className="bg-white p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-[2rem] border border-gray-100 shadow-sm flex flex-col sm:flex-row gap-4 sm:gap-6 items-start sm:items-center">
-                <div className="w-full h-32 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-xl sm:rounded-2xl bg-gray-100 overflow-hidden flex-shrink-0 relative box-shadow-sm">
-                    <img src="https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400&auto=format&fit=crop&q=60" alt="Crop" className="w-full h-full object-cover" />
+                <div className="w-full h-32 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-xl sm:rounded-2xl bg-gray-100 overflow-hidden flex-shrink-0">
+                    <img src={imageUrl} alt={crop} className="w-full h-full object-cover" />
                 </div>
                 <div>
-                    <h3 className="text-lg sm:text-xl md:text-2xl font-black text-gray-900 mb-1">Premium Organic Tomatoes</h3>
-                    <p className="text-xs sm:text-sm md:text-base font-bold text-gray-500 mb-3">Batch #AG-2041 • Quality Grade A</p>
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-black text-gray-900 mb-1">{crop}</h3>
+                    <p className="text-xs sm:text-sm font-bold text-gray-500 mb-3">
+                      Batch #{batchId?.slice(0,8).toUpperCase() || '—'} • Escrow Protected
+                    </p>
                     <div className="flex flex-wrap gap-2">
-                        <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-bold bg-gray-100 text-gray-700 px-2 py-1 rounded flex-shrink-0">
-                           <span className="material-symbols-outlined text-[12px] sm:text-[14px]">scale</span> 100 kg
+                        <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-bold bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                           <span className="material-symbols-outlined text-[12px] sm:text-[14px]">scale</span> {quantity} kg
                         </span>
-                        <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-bold bg-blue-50 text-blue-700 px-2 py-1 rounded flex-shrink-0">
+                        <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-bold bg-blue-50 text-blue-700 px-2 py-1 rounded">
                             <span className="material-symbols-outlined text-[12px] sm:text-[14px]">water_drop</span> Escrow Covered
                         </span>
                     </div>
@@ -109,23 +176,23 @@ export default function Checkout() {
                 
                 <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6 text-xs sm:text-sm font-medium">
                     <div className="flex justify-between items-center text-gray-600">
-                        <span>Produce Cost (100 kg)</span>
-                        <span className="font-bold text-gray-900">₹4,500</span>
+                        <span>Produce Cost ({quantity} kg)</span>
+                        <span className="font-bold text-gray-900">₹{totalAmount.toLocaleString('en-IN')}</span>
                     </div>
                     <div className="flex justify-between items-center text-gray-600">
                         <span>Platform Escrow Fee (2%)</span>
-                        <span className="font-bold text-gray-900">₹90</span>
+                        <span className="font-bold text-gray-900">₹{escrowFee.toLocaleString('en-IN')}</span>
                     </div>
                     <div className="flex justify-between items-center text-green-600">
                         <span>Verification Discount</span>
-                        <span className="font-bold">-₹45</span>
+                        <span className="font-bold">-₹{discount.toLocaleString('en-IN')}</span>
                     </div>
                 </div>
 
                 <div className="border-t border-gray-100 border-dashed pt-4 sm:pt-6 mb-6 sm:mb-8">
                     <div className="flex justify-between items-end">
                         <span className="text-base sm:text-lg font-bold text-gray-900">Total Payable</span>
-                        <span className="text-3xl sm:text-4xl font-black text-primary-600 leading-none">₹4,545</span>
+                        <span className="text-3xl sm:text-4xl font-black text-primary-600 leading-none">₹{payable.toLocaleString('en-IN')}</span>
                     </div>
                 </div>
 

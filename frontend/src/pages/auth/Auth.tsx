@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { API } from '../../lib/api';
+import LanguageSwitcher from '../../components/shared/LanguageSwitcher';
 
 type Role = 'farmer' | 'buyer';
-type AuthMode = 'login' | 'signup' | 'forgot';
+type AuthMode = 'login' | 'signup' | 'forgot' | 'verify';
 
 export default function Auth({ onBack }: { onBack: () => void }) {
   const navigate = useNavigate();
@@ -24,6 +25,9 @@ export default function Auth({ onBack }: { onBack: () => void }) {
   const [org, setOrg]             = useState('');
   const [showPass, setShowPass]   = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
+  
+  const [otpInput, setOtpInput]   = useState('');
+  const [tempUserId, setTempUserId] = useState('');
 
   const endpoint = role === 'farmer' ? '/farmers' : '/supermarket';
   const redirectTo = role === 'farmer' ? '/farmer/dashboard' : '/market/browse';
@@ -51,10 +55,15 @@ export default function Auth({ onBack }: { onBack: () => void }) {
         try { regData = JSON.parse(regText); } catch { throw new Error('Backend unreachable. Is the server running?'); }
         if (!regRes.ok) throw new Error(regData.error);
 
+        setTempUserId(regData.user_id);
+        setMode('verify');
+        setLoading(false);
+        return; // Don't redirect yet
+      } else if (mode === 'verify') {
         const verifyRes = await fetch(`${API}${endpoint}/verify-otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: regData.user_id, otp: regData.debug_otp }),
+          body: JSON.stringify({ user_id: tempUserId, otp: otpInput }),
         });
         const verifyText = await verifyRes.text();
         let verifyData: Record<string, string>;
@@ -122,7 +131,10 @@ export default function Auth({ onBack }: { onBack: () => void }) {
       </div>
 
       {/* RIGHT PANEL */}
-      <div className="flex-1 flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-24 bg-white">
+      <div className="flex-1 flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-24 bg-white relative">
+        <div className="absolute top-6 right-6 z-50">
+           <LanguageSwitcher />
+        </div>
         <div className="sm:hidden flex items-center gap-2 mb-10 cursor-pointer" onClick={onBack}>
           <span className="text-2xl">🌿</span>
           <span className="text-xl font-bold text-primary-600">AgroChain</span>
@@ -225,6 +237,37 @@ export default function Auth({ onBack }: { onBack: () => void }) {
                   Sign up
                 </button>
               </p>
+            </>
+          )}
+
+          {/* ── VERIFY OTP ── */}
+          {mode === 'verify' && (
+            <>
+              <button onClick={() => setMode('signup')}
+                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-8 transition-colors">
+                ← Back to signup
+              </button>
+              <div className="mb-8">
+                <h2 className="text-3xl font-extrabold text-gray-900 mb-2 tracking-tight">Verify Your Email</h2>
+                <p className="text-gray-500">We've sent a 6-digit OTP to <span className="font-semibold text-gray-800">{email}</span>. Please enter it below.</p>
+              </div>
+
+              {apiError && <div className="mb-4 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm font-medium">{apiError}</div>}
+
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">6-Digit OTP</label>
+                  <input type="text" required value={otpInput} onChange={e => setOtpInput(e.target.value)}
+                    maxLength={6}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all placeholder:text-gray-400 text-center tracking-[0.5em] font-bold text-lg"
+                    placeholder="------" />
+                </div>
+
+                <button type="submit" disabled={loading}
+                  className="w-full bg-primary-600 hover:bg-primary-700 disabled:opacity-70 text-white font-semibold py-3.5 rounded-xl shadow-lg shadow-primary-500/30 transition-all hover:-translate-y-0.5 active:translate-y-0">
+                  {loading ? 'Verifying…' : 'Verify & Continue'}
+                </button>
+              </form>
             </>
           )}
 

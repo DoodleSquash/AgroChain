@@ -1,8 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { API } from '../../lib/api';
+import { API, apiFetch } from '../../lib/api';
 import AIPriceAdvisor from '../../components/dashboard/AIPriceAdvisor';
+import { useVoice } from '../../context/VoiceContext';
 
 const FarmerDashboard = () => {
   const { t } = useTranslation();
@@ -10,31 +11,67 @@ const FarmerDashboard = () => {
   const userName = user.name || t('nav.farmer_portal');
 
   const [listings, setListings] = React.useState<any[]>([]);
-  const [loadingListings, setLoadingListings] = React.useState(true);
+  const [orders, setOrders] = React.useState<any[]>([]);
+  const [stats, setStats] = React.useState<any>({ activeListings: 0, pendingOrders: 0, totalEarnings: 0 });
+  const [payments, setPayments] = React.useState<any>({ pendingPayments: 0, releasedPayments: 0, totalEarnings: 0 });
+  const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    const fetchListings = async () => {
+    const fetchAllData = async () => {
       try {
-        const res = await fetch(`${API}/farmers/batches?farmer_id=${user.id}`);
-        const data = await res.json();
-        setListings(Array.isArray(data) ? data.slice(0, 4) : []);
+        const [dashRes, orderRes, batchRes, payRes] = await Promise.all([
+          apiFetch<any>(`/farmers/dashboard?farmer_id=${user.id}`),
+          apiFetch<any[]>(`/farmers/orders?farmer_id=${user.id}`),
+          apiFetch<any[]>(`/farmers/batches?farmer_id=${user.id}`),
+          apiFetch<any>(`/farmers/payments?farmer_id=${user.id}`)
+        ]);
+
+        setStats(dashRes);
+        setOrders(orderRes.slice(0, 3));
+        setListings(Array.isArray(batchRes) ? batchRes.slice(0, 4) : []);
+        setPayments(payRes);
       } catch (err) {
-        console.error(err);
+        console.error('Dashboard Fetch Error:', err);
       } finally {
-        setLoadingListings(false);
+        setLoading(false);
       }
     };
-    if (user.id) fetchListings();
-  }, [user.id, API]);
+    if (user.id) fetchAllData();
+  }, [user.id]);
 
   const cropImg = (crop: string) => {
     const c = crop.toLowerCase();
     if (c.includes('tomato'))  return '/product_tomatoes.png';
     if (c.includes('tulsi') || c.includes('spinach')) return '/product_tulsi.png';
     if (c.includes('milk') || c.includes('dairy'))    return '/product_milk.png';
-    if (c.includes('berry') || c.includes('mango'))   return '/product_berries.png';
     return '/product_tomatoes.png';
   };
+
+  // ── Voice Context Integration ──
+  const dashboardContext = React.useMemo(() => {
+    return `
+PAGE: Farmer Dashboard (Overview)
+NO SPECIFIC ACTIONS AVAILABLE. YOU ARE ACTING AS A DATA ANALYST.
+Use the following live dat to answer the user's questions:
+- Total Earnings: ₹${stats?.totalEarnings || 0}
+- Pending Escrow Payments: ₹${payments?.pendingPayments || 0}
+- Released Escrow Funds: ₹${payments?.releasedPayments || 0}
+- Active Product Listings: ${stats?.activeListings || 0}
+- Pending Orders: ${stats?.pendingOrders || 0}
+
+Recent Orders (First 3):
+${orders.map(o => `- Order from ${o?.buyer?.name || 'Unknown'}: ${o?.quantity}kg of ${o?.batch?.crop} for ₹${o?.total_amount} (Status: ${o?.status})`).join('\n')}
+
+Active Listings:
+${listings.map(l => `- ${l?.crop} at ₹${l?.price_per_unit}/kg (Quantity: ${l?.quantity}kg)`).join('\n')}
+    `.trim();
+  }, [stats, payments, orders, listings]);
+
+  useVoice(dashboardContext, (intent) => {
+    // We don't have local actions on the dashboard, 
+    // the bot will just reply conversationally or use GLOBAL_NAVIGATE.
+    console.log('[Dashboard] Voice Intent:', intent);
+  });
 
   return (
     <div className="p-3 sm:p-6 md:p-10 space-y-6 md:space-y-10 max-w-[1400px] mx-auto">
@@ -75,19 +112,19 @@ const FarmerDashboard = () => {
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[
           {
-            icon: 'payments', label: t('dashboard.total_earnings'), value: '₹42,850', badge: '+12%', badgeColor: 'text-green-700 bg-green-100',
+            icon: 'payments', label: t('dashboard.total_earnings'), value: `₹${stats.totalEarnings?.toLocaleString() || 0}`, badge: 'Total', badgeColor: 'text-green-700 bg-green-100',
             iconBg: 'bg-primary-50', iconColor: 'text-primary-600',
           },
           {
-            icon: 'schedule', label: t('dashboard.pending_escrow'), value: '₹12,400', badge: '4 Batches', badgeColor: 'text-blue-700 bg-blue-100',
+            icon: 'schedule', label: t('dashboard.pending_escrow'), value: `₹${payments.pendingPayments?.toLocaleString() || 0}`, badge: `${stats.pendingOrders || 0} Pending`, badgeColor: 'text-blue-700 bg-blue-100',
             iconBg: 'bg-blue-50', iconColor: 'text-blue-600',
           },
           {
-            icon: 'verified', label: t('dashboard.released_funds'), value: '₹30,450', badge: 'Settled', badgeColor: 'text-emerald-700 bg-emerald-100',
+            icon: 'verified', label: t('dashboard.released_funds'), value: `₹${payments.releasedPayments?.toLocaleString() || 0}`, badge: 'Settled', badgeColor: 'text-emerald-700 bg-emerald-100',
             iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600',
           },
           {
-            icon: 'storefront', label: t('dashboard.active_listings'), value: listings.length.toString(), badge: 'Real-time', badgeColor: 'text-violet-700 bg-violet-100',
+            icon: 'storefront', label: t('dashboard.active_listings'), value: (stats.activeListings || 0).toString(), badge: 'Active', badgeColor: 'text-violet-700 bg-violet-100',
             iconBg: 'bg-violet-50', iconColor: 'text-violet-600',
           },
         ].map((stat, i) => (
@@ -124,7 +161,7 @@ const FarmerDashboard = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-balance	">
-            {loadingListings ? (
+            {loading ? (
               [1, 2].map(i => <div key={i} className="h-64 bg-surface-container-low rounded-3xl animate-pulse" />)
             ) : (
               listings.map((item, i) => (
@@ -172,7 +209,7 @@ const FarmerDashboard = () => {
                 </div>
               ))
             )}
-            {listings.length === 0 && !loadingListings && (
+            {listings.length === 0 && !loading && (
               <div className="col-span-2 p-10 bg-surface-container-low rounded-3xl text-center border-2 border-dashed border-outline-variant/20">
                  <span className="material-symbols-outlined text-4xl text-on-surface-variant/30">inventory_2</span>
                  <p className="text-on-surface-variant font-bold mt-2">No active listings. Create one to start selling!</p>
@@ -248,37 +285,40 @@ const FarmerDashboard = () => {
               </Link>
             </div>
             <div className="space-y-3">
-              {[
-                {
-                  buyer: 'Fresh Mart Central', detail: '200kg Sweet Corn', order: '#AC-8821',
-                  amount: '₹14,200', status: 'In Transit', statusStyle: 'bg-blue-50 text-blue-700 border border-blue-200',
-                  icon: 'local_shipping', iconBg: 'bg-blue-50', iconColor: 'text-blue-600',
-                },
-                {
-                  buyer: 'WholeFoods Plaza', detail: '50kg Organic Basil', order: '#AC-8845',
-                  amount: '₹3,800', status: 'Pending', statusStyle: 'bg-amber-50 text-amber-700 border border-amber-200',
-                  icon: 'pending_actions', iconBg: 'bg-amber-50', iconColor: 'text-amber-600',
-                },
-                {
-                  buyer: 'GreenMart Delhi', detail: '300kg Spinach', order: '#AC-8799',
-                  amount: '₹9,600', status: 'Delivered', statusStyle: 'bg-green-50 text-green-700 border border-green-200',
-                  icon: 'check_circle', iconBg: 'bg-green-50', iconColor: 'text-green-600',
-                },
-              ].map((order, i) => (
-                <div key={i} className="bg-surface-container-lowest p-4 rounded-2xl flex items-center gap-4 border border-outline-variant/10 hover:border-primary-200 hover:shadow-sm transition-all group">
-                  <div className={`w-11 h-11 rounded-2xl ${order.iconBg} flex items-center justify-center flex-shrink-0`}>
-                    <span className={`material-symbols-outlined ${order.iconColor}`} style={{ fontVariationSettings: "'FILL' 1" }}>{order.icon}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start gap-2">
-                      <h4 className="font-bold text-sm text-on-surface truncate">{order.buyer}</h4>
-                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg flex-shrink-0 ${order.statusStyle}`}>{order.status}</span>
+              {orders.length === 0 && !loading && (
+                 <div className="p-8 bg-surface-container-low rounded-2xl text-center border border-dashed border-outline-variant/20 grayscale opacity-60">
+                    <p className="text-xs font-bold text-on-surface-variant">No orders yet.</p>
+                 </div>
+              )}
+              {orders.map((order, i) => {
+                const statusStyles: Record<string, string> = {
+                  'PENDING': 'bg-amber-50 text-amber-700 border border-amber-200',
+                  'IN_TRANSIT': 'bg-blue-50 text-blue-700 border border-blue-200',
+                  'DELIVERED': 'bg-green-50 text-green-700 border border-green-200',
+                  'CANCELLED': 'bg-red-50 text-red-700 border border-red-200',
+                };
+                const iconMap: Record<string, string> = {
+                  'PENDING': 'pending_actions',
+                  'IN_TRANSIT': 'local_shipping',
+                  'DELIVERED': 'check_circle',
+                  'CANCELLED': 'cancel',
+                };
+                return (
+                  <div key={i} className="bg-surface-container-lowest p-4 rounded-2xl flex items-center gap-4 border border-outline-variant/10 hover:border-primary-200 hover:shadow-sm transition-all group">
+                    <div className={`w-11 h-11 rounded-2xl bg-primary-50 flex items-center justify-center flex-shrink-0`}>
+                      <span className={`material-symbols-outlined text-primary-600`} style={{ fontVariationSettings: "'FILL' 1" }}>{iconMap[order.status] || 'receipt_long'}</span>
                     </div>
-                    <p className="text-xs text-on-surface-variant mt-0.5">{order.detail} · {order.order}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start gap-2">
+                        <h4 className="font-bold text-sm text-on-surface truncate">{order.buyer?.name || 'Unknown Buyer'}</h4>
+                        <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded-lg flex-shrink-0 ${statusStyles[order.status] || 'bg-gray-50'}`}>{order.status}</span>
+                      </div>
+                      <p className="text-xs text-on-surface-variant mt-0.5">{order.batch?.crop} · {order.quantity}kg</p>
+                    </div>
+                    <p className="text-sm font-extrabold text-primary-700 flex-shrink-0">₹{(order.total_amount || 0).toLocaleString()}</p>
                   </div>
-                  <p className="text-sm font-extrabold text-primary-700 flex-shrink-0">{order.amount}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -291,15 +331,15 @@ const FarmerDashboard = () => {
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-4">
                 <span className="material-symbols-outlined text-white/90" style={{ fontVariationSettings: "'FILL' 1" }}>security</span>
-                <h4 className="font-bold text-base">Secure Escrow Status</h4>
+                <h4 className="font-bold text-base">Ecrow Account Overview</h4>
               </div>
               <div className="space-y-4">
                 {[
-                  { label: 'Fund Verification', pct: 85 },
-                  { label: 'Delivery Confidence', pct: 92 },
+                  { label: 'Funds Released', pct: payments.totalEarnings ? Math.round((payments.releasedPayments / payments.totalEarnings) * 100) : 0 },
+                  { label: 'Funds Pending', pct: payments.totalEarnings ? Math.round((payments.pendingPayments / payments.totalEarnings) * 100) : 0 },
                 ].map((bar, i) => (
                   <div key={i}>
-                    <div className="flex justify-between text-xs font-medium mb-1.5">
+                    <div className="flex justify-between text-xs font-medium mb-1.5 text-white/90">
                       <span>{bar.label}</span>
                       <span>{bar.pct}%</span>
                     </div>
@@ -311,14 +351,13 @@ const FarmerDashboard = () => {
               </div>
               <div className="mt-5 pt-5 border-t border-white/20 flex justify-between items-center">
                 <div>
-                  <p className="text-white/70 text-xs">Locked in escrow</p>
-                  <p className="text-xl font-extrabold font-headline">₹12,400</p>
+                  <p className="text-white/70 text-xs">Total Contract Value</p>
+                  <p className="text-xl font-extrabold font-headline">₹{(payments.totalEarnings || 0).toLocaleString()}</p>
                 </div>
-                <button className="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px]">open_in_new</span> View Details
-                </button>
+                <Link to="/farmer/payments" className="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors flex items-center gap-1 text-on-secondary">
+                  <span className="material-symbols-outlined text-[14px]">open_in_new</span> Details
+                </Link>
               </div>
-              <p className="text-[11px] text-white/60 mt-3 italic">Funds auto-release after delivery confirmation.</p>
             </div>
           </div>
 
@@ -329,22 +368,42 @@ const FarmerDashboard = () => {
               Recent Activity
             </h3>
             <div className="space-y-4">
-              {[
-                { text: 'New order received from FreshMart', time: '2 hrs ago', icon: 'shopping_bag', color: 'text-blue-500 bg-blue-50' },
-                { text: 'QR scanned at warehouse checkpoint', time: '5 hrs ago', icon: 'qr_code_scanner', color: 'text-violet-500 bg-violet-50' },
-                { text: 'Escrow released: ₹9,800 credited', time: '1 day ago', icon: 'payments', color: 'text-green-500 bg-green-50' },
-                { text: 'Listing "Sweet Corn" marked as Sold', time: '2 days ago', icon: 'sell', color: 'text-amber-500 bg-amber-50' },
-              ].map((a, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <div className={`w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center ${a.color}`}>
-                    <span className="material-symbols-outlined text-[15px]" style={{ fontVariationSettings: "'FILL' 1" }}>{a.icon}</span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-on-surface leading-snug">{a.text}</p>
-                    <p className="text-xs text-on-surface-variant mt-0.5">{a.time}</p>
-                  </div>
-                </div>
-              ))}
+              {orders.length === 0 && (
+                <p className="text-xs text-on-surface-variant italic">No recent activities to show.</p>
+              )}
+              {orders.map((order, i) => {
+                 let text = '';
+                 let icon = 'info';
+                 let color = 'text-blue-500 bg-blue-50';
+                 
+                 if (order.status === 'PENDING') {
+                   text = `New order for ${order.batch?.crop} from ${order.buyer?.name}`;
+                   icon = 'shopping_bag';
+                   color = 'text-amber-500 bg-amber-50';
+                 } else if (order.status === 'IN_TRANSIT') {
+                   text = `${order.batch?.crop} is in transit to ${order.buyer?.name}`;
+                   icon = 'local_shipping';
+                   color = 'text-blue-500 bg-blue-50';
+                 } else if (order.status === 'DELIVERED') {
+                   text = `Payment for ${order.batch?.crop} released to your account`;
+                   icon = 'payments';
+                   color = 'text-green-500 bg-green-50';
+                 }
+
+                 return (
+                   <div key={i} className="flex items-start gap-3 border-l-2 border-outline-variant/10 pl-3 ml-1">
+                     <div className={`w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center ${color}`}>
+                       <span className="material-symbols-outlined text-[15px]" style={{ fontVariationSettings: "'FILL' 1" }}>{icon}</span>
+                     </div>
+                     <div className="flex-1">
+                       <p className="text-sm font-medium text-on-surface leading-snug">{text}</p>
+                       <p className="text-[10px] uppercase font-black text-on-surface-variant mt-1">
+                         {new Date(order.created_at).toLocaleDateString()}
+                       </p>
+                     </div>
+                   </div>
+                 );
+              })}
             </div>
           </div>
         </section>
