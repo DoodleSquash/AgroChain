@@ -19,6 +19,7 @@ export interface VoiceContextType {
   isSupported: boolean;
   messages: ChatMessage[];
   clearMessages: () => void;
+  processText: (text: string) => Promise<void>;
 }
 
 export const VoiceContext = createContext<VoiceContextType | undefined>(undefined);
@@ -123,49 +124,46 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     console.log(`[TTS] Speaking (${utt.lang}): "${text}"`);
   }, []);
 
-  useEffect(() => {
-    // Avoid processing the same transcript twice
-    if (!transcript || isListening || transcript === processedTranscriptRef.current) return;
-
-    processedTranscriptRef.current = transcript;
-
-    const processTranscript = async () => {
-      console.log(`[VoiceContext] 📝 Processing transcript: "${transcript}"`);
+  const processText = useCallback(async (textToProcess: string) => {
+    if (!textToProcess.trim()) return;
+    
+    console.log(`[VoiceContext] 📝 Processing text: "${textToProcess}"`);
       
-      // Add user message to UI
-      const newMessages = [...messages, { role: 'user' as const, content: transcript }];
-      setMessages(newMessages);
+    // Add user message to UI
+    const newMessages = [...messages, { role: 'user' as const, content: textToProcess }];
+    setMessages(newMessages);
 
-      setIsProcessing(true);
-      console.log(`[VoiceContext] 🧠 Sending to AI backend: ${API}/voice/intent`);
+    setIsProcessing(true);
+    console.log(`[VoiceContext] 🧠 Sending to AI backend: ${API}/voice/intent`);
 
-      try {
-        const response = await fetch(`${API}/voice/intent`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            transcript,
-            schema,
-            language: i18n.language,
-            conversationHistory: messages // send past history
-          })
-        });
+    try {
+      const response = await fetch(`${API}/voice/intent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transcript: textToProcess,
+          schema,
+          language: i18n.language,
+          conversationHistory: messages // send past history
+        })
+      });
 
-        const data = await response.json();
+      const data = await response.json();
 
-        if (!response.ok) {
-          console.error('[VoiceContext] ❌ Backend returned error:', data.error, data.details || '');
-          speak("Sorry, I encountered an error connecting to the server.");
-          return;
-        }
+      if (!response.ok) {
+        console.error('[VoiceContext] ❌ Backend returned error:', data.error, data.details || '');
+        if (window.speechSynthesis) speak("Sorry, I encountered an error connecting to the server.");
+        return;
+      }
 
-        // Update language if detected
-        if (data.intent?.detectedLanguage) {
-          detectedLangRef.current = data.intent.detectedLanguage;
-        }
+      // Update language if detected
+      if (data.intent?.detectedLanguage) {
+        detectedLangRef.current = data.intent.detectedLanguage;
+      }
 
-        if (data.response) {
-          setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
+      if (data.response) {
+        setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
+        if (window.speechSynthesis) {
           speak(data.response, () => {
             if (data.askingQuestion) {
               console.log('[VoiceContext] 🎤 Agent asked a question, auto-restarting mic...');
@@ -174,34 +172,41 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             }
           });
         }
-
-        if (data.intent && data.intent.action === 'GLOBAL_NAVIGATE' && data.intent.fields?.route) {
-          console.log('[VoiceContext] 🧭 Global Navigation to:', data.intent.fields.route);
-          navigate(data.intent.fields.route);
-          return;
-        }
-
-        if (data.intent && data.intent.action && intentCallbackRef.current) {
-          console.log('[VoiceContext] ✅ Executing intent:', JSON.stringify(data.intent));
-          intentCallbackRef.current(data.intent);
-        }
-      } catch (err) {
-        console.error('[VoiceContext] ❌ Fetch failed:', err);
-        speak("Sorry, there was a network error.");
-      } finally {
-        setIsProcessing(false);
-        setTranscript('');
       }
-    };
 
-    processTranscript();
-  }, [transcript, isListening, schema, i18n.language, setTranscript, messages, startListening, speak, navigate]);
+      if (data.intent && data.intent.action === 'GLOBAL_NAVIGATE' && data.intent.fields?.route) {
+        console.log('[VoiceContext] 🧭 Global Navigation to:', data.intent.fields.route);
+        navigate(data.intent.fields.route);
+        return;
+      }
+
+      if (data.intent && data.intent.action && intentCallbackRef.current) {
+        console.log('[VoiceContext] ✅ Executing intent:', JSON.stringify(data.intent));
+        intentCallbackRef.current(data.intent);
+      }
+    } catch (err) {
+      console.error('[VoiceContext] ❌ Fetch failed:', err);
+      if (window.speechSynthesis) speak("Sorry, there was a network error.");
+    } finally {
+      setIsProcessing(false);
+      setTranscript('');
+    }
+  }, [schema, i18n.language, messages, startListening, speak, navigate, setTranscript]);
+
+  useEffect(() => {
+    // Avoid processing the same transcript twice
+    if (!transcript || isListening || transcript === processedTranscriptRef.current) return;
+
+    processedTranscriptRef.current = transcript;
+    
+    processText(transcript);
+  }, [transcript, isListening, processText]);
 
   return (
     <VoiceContext.Provider value={{ 
       setSchema, setOnIntentCallback, 
       isListening, startListening, stopListening, isProcessing, isSupported,
-      messages, clearMessages
+      messages, clearMessages, processText
     }}>
       {children}
     </VoiceContext.Provider>

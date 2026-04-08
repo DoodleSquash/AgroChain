@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { API, apiFetch } from '../../lib/api';
+import { useVoice } from '../../context/VoiceContext';
 
 interface HireJob {
   id: string;
@@ -74,6 +75,56 @@ export default function ApplyJob() {
     };
     if (jobId) fetchJob();
   }, [jobId]);
+
+  // ── Voice Control ──
+  const voiceContext = `
+PAGE_CONTEXT: Apply for a Job
+Form State:
+- Full Name (Required): ${name || 'Not set'}
+- Phone Number (Required): ${phone || 'Not set'}
+- Location (Required): ${candidateLocation || 'Not set'}
+- Skills/Notes: ${skills || 'Not set'}
+
+Job Details:
+- Title: ${job?.title || 'Unknown'}
+- Wage: ${job?.wage || 'Unknown'}
+
+Supported actions schema:
+{
+  "action": "SET_FIELDS" | "SUBMIT_APPLICATION",
+  "fields": {
+    "name": "string or null",
+    "phone": "string or null",
+    "location": "string or null",
+    "skills": "string or null"
+  }
+}
+
+IMPORTANT: Do NOT use "SUBMIT_APPLICATION" UNLESS all required fields (name, phone, location) are filled. Otherwise use "SET_FIELDS" and ask the user for missing info.
+  `.trim();
+
+  const handleVoiceIntent = React.useCallback((intent: any) => {
+    if (!intent) return;
+    const applyFields = (f: any) => {
+      if (!f) return;
+      if (f.name) setName(f.name);
+      if (f.phone) setPhone(f.phone);
+      if (f.location) setCandidateLocation(f.location);
+      if (f.skills) setSkills(f.skills);
+    };
+
+    if (intent.action === 'SET_FIELDS') {
+      applyFields(intent.fields);
+    } else if (intent.action === 'SUBMIT_APPLICATION') {
+      applyFields(intent.fields);
+      setTimeout(() => {
+        const f = document.getElementById('apply-form');
+        if (f) f.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      }, 500);
+    }
+  }, [setName, setPhone, setCandidateLocation, setSkills]);
+
+  useVoice(voiceContext, handleVoiceIntent);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -214,7 +265,7 @@ export default function ApplyJob() {
             Apply for this Job
           </h2>
           
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form id="apply-form" onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <label className="text-sm font-bold text-on-surface-variant">Full Name <span className="text-red-500">*</span></label>
               <div className="relative">

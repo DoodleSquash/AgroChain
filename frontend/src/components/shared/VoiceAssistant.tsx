@@ -5,6 +5,7 @@ export default function VoiceAssistant() {
   const voice = useContext(VoiceContext);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [inputText, setInputText] = useState('');
 
   useEffect(() => {
     if (!voice) {
@@ -99,6 +100,36 @@ export default function VoiceAssistant() {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Text Input Fallback */}
+          <div className="p-3 bg-surface-container-low border-t border-outline-variant/20">
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (inputText.trim()) {
+                  voice.processText(inputText);
+                  setInputText('');
+                }
+              }}
+              className="relative"
+            >
+              <input
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder="Type a message..."
+                disabled={isProcessing}
+                className="w-full bg-white border border-outline-variant/30 text-sm text-on-surface rounded-full pl-4 pr-10 py-2.5 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all disabled:opacity-70"
+              />
+              <button 
+                type="submit" 
+                disabled={!inputText.trim() || isProcessing}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-primary-600 disabled:text-on-surface-variant/40 hover:bg-primary-50 rounded-full transition-colors"
+              >
+                <span className="material-symbols-outlined text-[18px]">send</span>
+              </button>
+            </form>
           </div>
         </div>
       )}
