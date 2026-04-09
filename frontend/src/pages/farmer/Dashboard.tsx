@@ -331,7 +331,7 @@ ${listings.map(l => `- ${l?.crop} at ₹${l?.price_per_unit}/kg (Quantity: ${l?.
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-4">
                 <span className="material-symbols-outlined text-white/90" style={{ fontVariationSettings: "'FILL' 1" }}>security</span>
-                <h4 className="font-bold text-base">Ecrow Account Overview</h4>
+                <h4 className="font-bold text-base">Escrow Account Overview</h4>
               </div>
               <div className="space-y-4">
                 {[

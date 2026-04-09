@@ -41,7 +41,7 @@ export default function Auth({ onBack }: { onBack: () => void }) {
     setLoading(true);
     try {
       if (mode === 'signup') {
-        const body: Record<string, string> = { name, email, phone: '0000000000' }
+        const body: Record<string, string> = { name, email, password, phone: '0000000000' }
         if (role === 'farmer') { body.location = location; body.crops = crops; }
         else { body.organization = org; }
 
@@ -76,7 +76,7 @@ export default function Auth({ onBack }: { onBack: () => void }) {
         const res = await fetch(`${API}${endpoint}/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email }),
+          body: JSON.stringify({ email, password }),
         });
         const text = await res.text();
         let data: Record<string, string>;

@@ -5,10 +5,10 @@ import { signToken } from '../utils/auth';
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { phone, email, name } = req.body;
+    const { phone, email, name, password } = req.body;
     
-    if (!email || !phone || !name) {
-        res.status(400).json({ error: 'Name, email and phone are required for registration' });
+    if (!email || !phone || !name || !password) {
+        res.status(400).json({ error: 'Name, email, phone and password are required for registration' });
         return;
     }
 
@@ -18,8 +18,10 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    const { hashPassword } = await import('../utils/auth');
+
     user = await prisma.user.create({
-      data: { name, email, phone, role: 'FARMER', is_verified: false }
+      data: { name, email, phone, role: 'FARMER', is_verified: false, password: hashPassword(password) }
     });
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -44,7 +46,12 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, phone } = req.body;
+    const { email, phone, password } = req.body;
+
+    if (!password) {
+      res.status(400).json({ error: 'Password is required' });
+      return;
+    }
 
     const user = await prisma.user.findFirst({
       where: {
@@ -63,7 +70,13 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     }
 
     if (!user.is_verified) {
-      res.status(401).json({ error: 'User email not verified. Please verify OTP first.' });
+      res.status(401).json({ error: 'User email not verified. Please verify OTP sent to your email first.' });
+      return;
+    }
+
+    const { hashPassword } = await import('../utils/auth');
+    if (!user.password || user.password !== hashPassword(password)) {
+      res.status(401).json({ error: 'Invalid credentials' });
       return;
     }
 

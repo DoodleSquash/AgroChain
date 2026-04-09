@@ -1,24 +1,19 @@
 import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
+import crypto from 'crypto';
 
-dotenv.config();
+const JWT_SECRET = process.env.JWT_SECRET || 'agrochain-secret-key-2026';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
-
-export interface TokenPayload {
-  user_id: string;
-  role: string;
-  email: string;
-}
-
-export const signToken = (payload: TokenPayload): string => {
+export const signToken = (payload: any) => {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 };
 
-export const verifyToken = (token: string): TokenPayload | null => {
-  try {
-    return jwt.verify(token, JWT_SECRET) as TokenPayload;
-  } catch (error) {
-    return null;
-  }
+export const verifyToken = (token: string): any => {
+  return jwt.verify(token, JWT_SECRET);
+};
+
+/**
+ * Hashes a password using SHA-256
+ */
+export const hashPassword = (password: string): string => {
+  return crypto.createHash('sha256').update(password).digest('hex');
 };

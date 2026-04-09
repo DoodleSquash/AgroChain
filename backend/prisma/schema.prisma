@@ -32,6 +32,7 @@ model User {
   name          String
   phone         String?
   email         String    @unique
+  password      String?
   is_verified   Boolean   @default(false)
   otp_code      String?
   otp_expiry    DateTime?
