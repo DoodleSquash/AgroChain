@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { apiFetch } from '../../lib/api';
+import { usePersistentState } from '../../hooks/usePersistentState';
 import { useVoice } from '../../context/VoiceContext';
 
 interface JobApplication {
@@ -46,12 +47,12 @@ export default function FarmerHire() {
   const [voiceToast, setVoiceToast] = useState<string | null>(null);
 
   // Form State
-  const [title, setTitle] = useState('');
-  const [location, setLocation] = useState('');
-  const [wage, setWage] = useState('');
-  const [workersNeeded, setWorkersNeeded] = useState('');
-  const [date, setDate] = useState('');
-  const [description, setDescription] = useState('');
+  const [title, setTitle] = usePersistentState('hire_title', '');
+  const [location, setLocation] = usePersistentState('hire_location', '');
+  const [wage, setWage] = usePersistentState('hire_wage', '');
+  const [workersNeeded, setWorkersNeeded] = usePersistentState<number | string>('hire_workers', '');
+  const [workDate, setWorkDate] = usePersistentState('hire_date', '');
+  const [description, setDescription] = usePersistentState('hire_desc', '');
   const [locating, setLocating] = useState(false);
   const [lat, setLat] = useState<number | undefined>();
   const [lng, setLng] = useState<number | undefined>();
@@ -90,7 +91,7 @@ export default function FarmerHire() {
   const locationRef = useRef(location);
   const wageRef = useRef(wage);
   const workersNeededRef = useRef(workersNeeded);
-  const dateRef = useRef(date);
+  const dateRef = useRef(workDate);
   const descriptionRef = useRef(description);
   const latRef = useRef(lat);
   const lngRef = useRef(lng);
@@ -100,7 +101,7 @@ export default function FarmerHire() {
   useEffect(() => { locationRef.current = location; }, [location]);
   useEffect(() => { wageRef.current = wage; }, [wage]);
   useEffect(() => { workersNeededRef.current = workersNeeded; }, [workersNeeded]);
-  useEffect(() => { dateRef.current = date; }, [date]);
+  useEffect(() => { dateRef.current = workDate; }, [workDate]);
   useEffect(() => { descriptionRef.current = description; }, [description]);
   useEffect(() => { latRef.current = lat; }, [lat]);
   useEffect(() => { lngRef.current = lng; }, [lng]);
@@ -164,7 +165,7 @@ export default function FarmerHire() {
       if (fields.location)      { setLocation(fields.location);                  filledFields.push(`location`); }
       if (fields.wage)          { setWage(String(fields.wage));                  filledFields.push(`wage`); }
       if (fields.workersNeeded) { setWorkersNeeded(String(fields.workersNeeded)); filledFields.push(`workers`); }
-      if (fields.date)          { setDate(fields.date);                          filledFields.push(`date`); }
+      if (fields.date)          { setWorkDate(fields.date);                      filledFields.push(`date`); }
       if (fields.description)   { setDescription(fields.description);            filledFields.push(`description`); }
     };
 
@@ -200,7 +201,7 @@ export default function FarmerHire() {
             setJobs(prev => [newJob, ...prev]);
             setSelectedJob(newJob);
             setShowCreateForm(false);
-            setTitle(''); setLocation(''); setWage(''); setWorkersNeeded(''); setDate(''); setDescription('');
+            setTitle(''); setLocation(''); setWage(''); setWorkersNeeded(''); setWorkDate(''); setDescription('');
             setLat(undefined); setLng(undefined);
             showVoiceToast('✅ Job published successfully!');
           } catch (e: any) {
@@ -241,7 +242,7 @@ export default function FarmerHire() {
   const handleCreateJob = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const newJob = await apiFetch<HireJob>('/farmers/hiring', {
+      const response = await apiFetch<any>('/farmers/hiring', {
         method: 'POST',
         body: JSON.stringify({
           farmer_id: farmerId,
@@ -251,13 +252,19 @@ export default function FarmerHire() {
           lng,
           wage,
           workers_needed: workersNeeded,
-          work_date: date,
+          work_date: workDate,
           description
         })
       });
       
-      setJobs([newJob, ...jobs]);
-      setSelectedJob(newJob);
+      if (!response.ok) throw new Error(response.error);
+
+      // Clear persistence
+      const keys = ['hire_title', 'hire_location', 'hire_wage', 'hire_workers', 'hire_date', 'hire_desc'];
+      keys.forEach(k => localStorage.removeItem(k));
+
+      setJobs([response.job, ...jobs]);
+      setSelectedJob(response.job);
       setShowCreateForm(false);
       
       // reset form

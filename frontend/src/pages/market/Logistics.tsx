@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { apiFetch } from '../../lib/api';
+import { usePersistentState } from '../../hooks/usePersistentState';
 
 interface Job {
   id: string
@@ -28,9 +29,9 @@ export default function Logistics() {
 
   // Transport form
   const [tOrderId, setTOrderId]   = useState('');
-  const [driverName, setDriver]   = useState('');
-  const [vehicle, setVehicle]     = useState('');
-  const [driverEmail, setEmail]   = useState('');
+  const [driverName, setDriver]   = usePersistentState('logistics_driver', '');
+  const [vehicle, setVehicle]     = usePersistentState('logistics_vehicle', '');
+  const [driverEmail, setEmail]   = usePersistentState('logistics_email', '');
   const [targetWH, setTargetWH]   = useState(''); 
   const [tGenerating, setTGen]    = useState(false);
   const [tError, setTError]       = useState('');
@@ -126,6 +127,10 @@ export default function Logistics() {
       });
       
       setDriver(''); setVehicle(''); setEmail('');
+      // Clear persistence
+      localStorage.removeItem('logistics_driver');
+      localStorage.removeItem('logistics_vehicle');
+      localStorage.removeItem('logistics_email');
       await fetchOrders();
     } catch (err: any) {
       setTError(err.message || 'Transmission failed.');

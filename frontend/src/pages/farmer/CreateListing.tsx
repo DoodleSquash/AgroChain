@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { usePersistentState } from '../../hooks/usePersistentState';
 import { API, authHeaders } from '../../lib/api';
 import { useVoice } from '../../context/VoiceContext';
 
@@ -11,13 +12,13 @@ export default function CreateListing() {
   const navigate = useNavigate();
 
   // Form state
-  const [crop, setCrop]             = useState('');
-  const [category, setCategory]     = useState('Vegetables');
-  const [quantity, setQuantity]     = useState('');
-  const [price, setPrice]           = useState('');
-  const [location, setLocation]     = useState('');
-  const [harvestDate, setHarvest]   = useState('');
-  const [expiryDate, setExpiry]     = useState('');
+  const [crop, setCrop]             = usePersistentState('listing_crop', '');
+  const [category, setCategory]     = usePersistentState('listing_cat', 'Vegetables');
+  const [quantity, setQuantity]     = usePersistentState('listing_qty', '');
+  const [price, setPrice]           = usePersistentState('listing_price', '');
+  const [location, setLocation]     = usePersistentState('listing_loc', '');
+  const [harvestDate, setHarvest]   = usePersistentState('listing_harvest', '');
+  const [expiryDate, setExpiry]     = usePersistentState('listing_expiry', '');
   const [badges, setBadges]         = useState<string[]>([]);
 
   // Image state
@@ -191,7 +192,11 @@ IMPORTANT: Do NOT use "SUBMIT_LISTING" action UNLESS all required fields are fil
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      navigate('/farmer/listings');
+      // Clear persistence
+      const keys = ['listing_crop', 'listing_cat', 'listing_qty', 'listing_price', 'listing_loc', 'listing_harvest', 'listing_expiry'];
+      keys.forEach(k => localStorage.removeItem(k));
+
+      navigate('/farmer/dashboard');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
       setUploading(false);

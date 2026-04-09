@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../../lib/api';
+import { usePersistentState } from '../../hooks/usePersistentState';
 
 interface Worker {
   id: string;
@@ -23,8 +24,8 @@ export default function Warehouses() {
   const [showWorkerModal, setShowWorkerModal] = useState(false);
   const [selectedWH, setSelectedWH] = useState<string | null>(null);
   
-  const [whForm, setWHForm] = useState({ name: '', location: '' });
-  const [workerForm, setWorkerForm] = useState({ name: '', email: '' });
+  const [whForm, setWHForm] = usePersistentState('wh_form', { name: '', location: '' });
+  const [workerForm, setWorkerForm] = usePersistentState('wh_worker_form', { name: '', email: '' });
 
   const user = useMemo(() => {
     try {
@@ -96,6 +97,7 @@ export default function Warehouses() {
         body: JSON.stringify({ ...whForm, buyer_id: user.id })
       });
       setWHForm({ name: '', location: '' });
+      localStorage.removeItem('wh_form');
       setShowWHModal(false);
       fetchWarehouses();
     } catch (err) { alert('Failed to create warehouse. Please try again.'); }
@@ -110,6 +112,7 @@ export default function Warehouses() {
         body: JSON.stringify({ ...workerForm, warehouse_id: selectedWH })
       });
       setWorkerForm({ name: '', email: '' });
+      localStorage.removeItem('wh_worker_form');
       setShowWorkerModal(false);
       fetchWarehouses();
     } catch (err) { alert('Failed to add worker'); }

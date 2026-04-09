@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 import { apiFetch, API, authHeaders } from '../../lib/api';
+import { usePersistentState } from '../../hooks/usePersistentState';
 
 interface UserResult {
   id: string;
@@ -48,7 +49,7 @@ export default function Chats() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChat, setActiveChat] = useState<Chat | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
+  const [newMessage, setNewMessage] = usePersistentState(`chat_draft_${activeChat?.id || 'none'}`, '');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -231,6 +232,7 @@ export default function Chats() {
       image_url: imageUrl
     });
     setNewMessage('');
+    localStorage.removeItem(`chat_draft_${activeChat.id}`);
   };
 
   const isShowingSearch = searchQuery.trim().length > 0;

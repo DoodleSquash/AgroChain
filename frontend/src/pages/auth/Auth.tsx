@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { usePersistentState } from '../../hooks/usePersistentState';
 import { API } from '../../lib/api';
 import LanguageSwitcher from '../../components/shared/LanguageSwitcher';
 
@@ -17,12 +18,12 @@ export default function Auth({ onBack }: { onBack: () => void }) {
   const [apiError, setApiError]   = useState('');
 
   // Form state
-  const [email, setEmail]         = useState('');
-  const [password, setPassword]   = useState('');
-  const [name, setName]           = useState('');
-  const [location, setLocation]   = useState('');
-  const [crops, setCrops]         = useState('');
-  const [org, setOrg]             = useState('');
+  const [email, setEmail]         = usePersistentState('auth_email', '');
+  const [password, setPassword]   = usePersistentState('auth_password', '');
+  const [name, setName]           = usePersistentState('auth_name', '');
+  const [location, setLocation]   = usePersistentState('auth_location', '');
+  const [crops, setCrops]         = usePersistentState('auth_crops', '');
+  const [org, setOrg]             = usePersistentState('auth_org', '');
   const [showPass, setShowPass]   = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
   
@@ -86,6 +87,10 @@ export default function Auth({ onBack }: { onBack: () => void }) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
       }
+
+      // Clear local history after successful auth
+      const authKeys = ['auth_email', 'auth_password', 'auth_name', 'auth_location', 'auth_crops', 'auth_org'];
+      authKeys.forEach(k => localStorage.removeItem(k));
 
       navigate(redirectTo);
     } catch (err: unknown) {

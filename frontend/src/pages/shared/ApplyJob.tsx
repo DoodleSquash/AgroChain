@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { API, apiFetch } from '../../lib/api';
 import { useVoice } from '../../context/VoiceContext';
+import { usePersistentState } from '../../hooks/usePersistentState';
 
 interface HireJob {
   id: string;
@@ -25,10 +26,10 @@ export default function ApplyJob() {
   const [submitted, setSubmitted] = useState(false);
 
   // Form State
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [skills, setSkills] = useState('');
-  const [candidateLocation, setCandidateLocation] = useState('');
+  const [name, setName] = usePersistentState(`apply_name_${jobId}`, '');
+  const [phone, setPhone] = usePersistentState(`apply_phone_${jobId}`, '');
+  const [skills, setSkills] = usePersistentState(`apply_skills_${jobId}`, '');
+  const [candidateLocation, setCandidateLocation] = usePersistentState(`apply_loc_${jobId}`, '');
   const [locating, setLocating] = useState(false);
   const [lat, setLat] = useState<number | undefined>();
   const [lng, setLng] = useState<number | undefined>();
@@ -151,6 +152,11 @@ IMPORTANT: Do NOT use "SUBMIT_APPLICATION" UNLESS all required fields (name, pho
           lng
         })
       });
+
+      // Clear local history
+      const keys = [`apply_name_${jobId}`, `apply_phone_${jobId}`, `apply_skills_${jobId}`, `apply_loc_${jobId}`];
+      keys.forEach(k => localStorage.removeItem(k));
+
       setSubmitted(true);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to submit application');

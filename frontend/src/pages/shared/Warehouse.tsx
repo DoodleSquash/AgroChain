@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { usePersistentState } from '../../hooks/usePersistentState';
 import { API } from '../../lib/api';
 
 interface Job {
@@ -15,9 +16,9 @@ export default function Warehouse() {
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const [weight, setWeight]     = useState('');
-  const [grade, setGrade]       = useState('A');
-  const [storage, setStorage]   = useState('Cold Storage');
+  const [weight, setWeight]     = usePersistentState(`wh_weight_${token}`, '');
+  const [grade, setGrade]       = usePersistentState(`wh_grade_${token}`, 'A');
+  const [storage, setStorage]   = usePersistentState(`wh_storage_${token}`, 'Cold Storage');
 
   useEffect(() => {
     fetch(`${API}/logistics/jobs/${token}`)
@@ -40,6 +41,10 @@ export default function Warehouse() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setSuccess(data.message);
+      // Clear persisted form after success
+      localStorage.removeItem(`wh_weight_${token}`);
+      localStorage.removeItem(`wh_grade_${token}`);
+      localStorage.removeItem(`wh_storage_${token}`);
       setJob(prev => prev ? { ...prev, status: 'COMPLETED' } : prev);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed');

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../../lib/api';
+import { usePersistentState } from '../../hooks/usePersistentState';
 import { useVoice } from '../../context/VoiceContext';
 
 interface ProfileData {
@@ -21,7 +22,7 @@ export default function SetupProfile() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [data, setData] = useState<ProfileData>({
+  const [data, setData] = usePersistentState<ProfileData>('setup_profile', {
     phone: '', location: '', bio: '', farmer_type: '', company_name: '', purchasing_prefs: '', buyer_type: '', price_range: ''
   });
   const [locating, setLocating] = useState(false);
@@ -118,6 +119,8 @@ export default function SetupProfile() {
           price_range: !isFarmer ? (data.price_range || null) : null,
         })
       });
+
+      localStorage.removeItem('setup_profile');
       setSuccess(true);
       setTimeout(() => {
         navigate(isFarmer ? '/farmer/dashboard' : '/market/dashboard');
