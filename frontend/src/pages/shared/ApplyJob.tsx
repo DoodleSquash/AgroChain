@@ -32,6 +32,12 @@ export default function ApplyJob() {
   const [locating, setLocating] = useState(false);
   const [lat, setLat] = useState<number | undefined>();
   const [lng, setLng] = useState<number | undefined>();
+  const [voiceToast, setVoiceToast] = useState<string | null>(null);
+
+  const showVoiceToast = (msg: string) => {
+    setVoiceToast(msg);
+    setTimeout(() => setVoiceToast(null), 4000);
+  };
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -115,8 +121,10 @@ IMPORTANT: Do NOT use "SUBMIT_APPLICATION" UNLESS all required fields (name, pho
 
     if (intent.action === 'SET_FIELDS') {
       applyFields(intent.fields);
+      showVoiceToast('✅ Application updated via voice');
     } else if (intent.action === 'SUBMIT_APPLICATION') {
       applyFields(intent.fields);
+      showVoiceToast('⏳ Sending application...');
       setTimeout(() => {
         const f = document.getElementById('apply-form');
         if (f) f.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
@@ -194,6 +202,14 @@ IMPORTANT: Do NOT use "SUBMIT_APPLICATION" UNLESS all required fields (name, pho
 
   return (
     <div className="min-h-screen bg-surface-container-lowest font-body pb-12">
+      {/* Voice Action Toast */}
+      {voiceToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[9998] bg-gray-900/95 text-white text-sm font-semibold px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 animate-slideUp">
+          <span className="material-symbols-outlined text-[18px] text-green-400">mic</span>
+          {voiceToast}
+        </div>
+      )}
+
       {/* Top Bar Wrapper */}
       <div className="bg-gradient-to-br from-primary-600 to-primary-800 text-white pt-10 pb-20 px-4 sm:px-6 md:px-8">
         <div className="max-w-2xl mx-auto flex items-center justify-center gap-3">
