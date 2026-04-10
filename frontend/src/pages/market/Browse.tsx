@@ -142,21 +142,30 @@ export default function Browse() {
     fetchFarmerTypes()
   }, [])
 
+  const locationMatch = (listingLoc: string | null, filter: string): boolean => {
+    if (filter === 'All Locations') return true;
+    const loc = (listingLoc || '').toLowerCase();
+    const f = filter.toLowerCase();
+    // Match if listing contains filter term OR filter contains the listing city
+    return loc.includes(f) || f.includes(loc.split(',')[0].trim());
+  };
+
   const filtered = viewMode === 'produce' ? batches.filter(l => {
     if (search && !l.crop.toLowerCase().includes(search.toLowerCase()) &&
         !l.farmer.name.toLowerCase().includes(search.toLowerCase())) return false
     if (cropType !== 'All Produce' && l.category !== cropType) return false
-    if (location !== 'All Locations' && !(l.location || '').toLowerCase().includes(location.toLowerCase())) return false
+    if (!locationMatch(l.location, location)) return false
     if (!priceInRange(l.price_per_unit, priceRange)) return false
     if (verifiedOnly && !l.farmer.is_verified) return false
     return true
   }) : farmers.filter(f => {
     if (search && !f.name.toLowerCase().includes(search.toLowerCase())) return false
     if (farmerType !== 'All Types' && f.profile?.farmer_type !== farmerType) return false
-    if (location !== 'All Locations' && !(f.profile?.location || '').toLowerCase().includes(location.toLowerCase())) return false
+    if (!locationMatch(f.profile?.location ?? null, location)) return false
     if (verifiedOnly && !f.is_verified) return false
     return true
   });
+
 
   const toggleWish = (id: string) =>
     setWishlist(w => w.includes(id) ? w.filter(x => x !== id) : [...w, id])
@@ -288,15 +297,9 @@ export default function Browse() {
               {showCityMenu && (
                 <div className="absolute top-full left-0 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="p-2 space-y-1">
-                    <button 
-                      onClick={() => { setLocation('All Locations'); setShowCityMenu(false); }}
-                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-gray-50 text-gray-400 uppercase tracking-wider"
-                    >
-                      Clear Filter
-                    </button>
                     {INDIAN_CITIES
                       .filter(c => c.toLowerCase().includes(location === 'All Locations' ? '' : location.toLowerCase()))
-                      .slice(0, 50) // Optimization: limit display
+                      .slice(0, 50)
                       .map(city => (
                         <button
                           key={city}
