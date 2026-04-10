@@ -18,8 +18,10 @@ export default function Auth({ onBack }: { onBack: () => void }) {
   const [apiError, setApiError]   = useState('');
 
   // Form state
-  const [email, setEmail]         = usePersistentState('auth_email', '');
+  const [email, setEmail]         = useState('');
   const [password, setPassword]   = usePersistentState('auth_password', '');
+  // Saved email for suggestion (datalist) — not autofilled
+  const savedEmail = localStorage.getItem('auth_email_hint') || '';
   const [name, setName]           = usePersistentState('auth_name', '');
   const [location, setLocation]   = usePersistentState('auth_location', '');
   const [crops, setCrops]         = usePersistentState('auth_crops', '');
@@ -88,9 +90,17 @@ export default function Auth({ onBack }: { onBack: () => void }) {
         localStorage.setItem('user', JSON.stringify(data.user));
       }
 
-      // Clear local history after successful auth
-      const authKeys = ['auth_email', 'auth_password', 'auth_name', 'auth_location', 'auth_crops', 'auth_org'];
-      authKeys.forEach(k => localStorage.removeItem(k));
+      // After signup verify: clear everything (new session)
+      // After login: only clear password (keep email as "remember me"), and clear signup-only fields
+      if (mode === 'verify') {
+        const allKeys = ['auth_password', 'auth_name', 'auth_location', 'auth_crops', 'auth_org'];
+        allKeys.forEach(k => localStorage.removeItem(k));
+      } else {
+        // Save email as a hint for the datalist suggestion next visit
+        if (email) localStorage.setItem('auth_email_hint', email);
+        const loginClearKeys = ['auth_password', 'auth_name', 'auth_location', 'auth_crops', 'auth_org'];
+        loginClearKeys.forEach(k => localStorage.removeItem(k));
+      }
 
       navigate(redirectTo);
     } catch (err: unknown) {
@@ -205,9 +215,17 @@ export default function Auth({ onBack }: { onBack: () => void }) {
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
-                  <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
+                  <input
+                    type="email" required value={email} onChange={e => setEmail(e.target.value)}
+                    list="email-suggestions"
                     className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all placeholder:text-gray-400"
-                    placeholder="you@example.com" />
+                    placeholder="you@example.com"
+                  />
+                  {savedEmail && (
+                    <datalist id="email-suggestions">
+                      <option value={savedEmail} />
+                    </datalist>
+                  )}
                 </div>
 
                 <div>

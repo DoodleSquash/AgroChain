@@ -7,6 +7,27 @@ export default function VoiceAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [inputText, setInputText] = useState('');
 
+  // Drag state
+  const panelRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef({ dragging: false, startX: 0, startY: 0, origX: 0, origY: 0 });
+  const [panelPos, setPanelPos] = useState<{ x: number; y: number } | null>(null);
+
+  const onDragStart = (e: React.MouseEvent) => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    const rect = panel.getBoundingClientRect();
+    dragRef.current = { dragging: true, startX: e.clientX, startY: e.clientY, origX: rect.left, origY: rect.top };
+    const onMove = (ev: MouseEvent) => {
+      if (!dragRef.current.dragging) return;
+      const dx = ev.clientX - dragRef.current.startX;
+      const dy = ev.clientY - dragRef.current.startY;
+      setPanelPos({ x: dragRef.current.origX + dx, y: dragRef.current.origY + dy });
+    };
+    const onUp = () => { dragRef.current.dragging = false; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
   useEffect(() => {
     if (!voice) {
       console.error('[VoiceAssistant] ❌ VoiceContext not found. Is VoiceProvider wrapping App?');
@@ -42,10 +63,20 @@ export default function VoiceAssistant() {
     <>
       {/* Expanded Chat Panel */}
       {isOpen && (
-        <div className="fixed bottom-28 right-6 z-[9998] w-[calc(100vw-3rem)] max-w-sm bg-surface-container-highest/95 backdrop-blur-2xl border border-outline-variant/30 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-slideUp origin-bottom-right">
+        <div
+          ref={panelRef}
+          className="fixed z-[9998] w-[calc(100vw-3rem)] max-w-sm bg-surface-container-highest/95 backdrop-blur-2xl border border-outline-variant/30 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-slideUp origin-bottom-right"
+          style={panelPos
+            ? { left: panelPos.x, top: panelPos.y, bottom: 'auto', right: 'auto' }
+            : { bottom: '7rem', right: '1.5rem' }
+          }
+        >
           
-          {/* Header */}
-          <div className="flex items-center justify-between px-5 py-3 bg-primary-600 text-white">
+          {/* Header – drag handle */}
+          <div
+            className="flex items-center justify-between px-5 py-3 bg-primary-600 text-white cursor-grab active:cursor-grabbing select-none"
+            onMouseDown={onDragStart}
+          >
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-[20px]">smart_toy</span>
               <span className="font-bold font-headline">AgroBot</span>

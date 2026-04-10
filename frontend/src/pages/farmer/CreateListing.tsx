@@ -76,7 +76,8 @@ Supported actions schema:
     "quantity": "number or null",
     "price": "number or null",
     "location": "location string or null",
-    "harvestDate": "YYYY-MM-DD or null"
+    "harvestDate": "YYYY-MM-DD or null",
+    "expiryDate": "YYYY-MM-DD or null"
   }
 }
 
@@ -93,6 +94,7 @@ IMPORTANT: Do NOT use "SUBMIT_LISTING" action UNLESS all required fields are fil
       if (f.price) setPrice(String(f.price));
       if (f.location) setLocation(f.location);
       if (f.harvestDate) setHarvest(f.harvestDate);
+      if (f.expiryDate) setExpiry(f.expiryDate);
     };
 
     if (intent.action === 'SET_FIELDS') {

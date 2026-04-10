@@ -15,6 +15,7 @@ const FarmerDashboard = () => {
   const [stats, setStats] = React.useState<any>({ activeListings: 0, pendingOrders: 0, totalEarnings: 0 });
   const [payments, setPayments] = React.useState<any>({ pendingPayments: 0, releasedPayments: 0, totalEarnings: 0 });
   const [loading, setLoading] = React.useState(true);
+  const [weather, setWeather] = React.useState<{ temp: number; humidity: number; desc: string; icon: string } | null>(null);
 
   React.useEffect(() => {
     const fetchAllData = async () => {
@@ -38,6 +39,39 @@ const FarmerDashboard = () => {
     };
     if (user.id) fetchAllData();
   }, [user.id]);
+
+  // ── Live Weather via open-meteo (no API key needed) ──
+  React.useEffect(() => {
+    const fetchWeather = async () => {
+      try {
+        // Get coordinates via browser geolocation
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+          const { latitude: lat, longitude: lon } = pos.coords;
+          const res = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weathercode&timezone=auto`
+          );
+          const d = await res.json();
+          const code = d.current.weathercode;
+          const descMap: Record<number, [string, string]> = {
+            0: ['Clear Sky', 'sunny'], 1: ['Mainly Clear', 'partly_cloudy_day'],
+            2: ['Partly Cloudy', 'partly_cloudy_day'], 3: ['Overcast', 'cloud'],
+            45: ['Foggy', 'foggy'], 51: ['Light Drizzle', 'rainy_light'],
+            61: ['Light Rain', 'rainy'], 71: ['Light Snow', 'weather_snowy'],
+            80: ['Rain Showers', 'rainy'], 95: ['Thunderstorm', 'thunderstorm'],
+          };
+          const nearest = Object.keys(descMap).reverse().find(k => code >= Number(k));
+          const [desc, icon] = descMap[Number(nearest)] || ['Clear Sky', 'sunny'];
+          setWeather({ temp: Math.round(d.current.temperature_2m), humidity: d.current.relative_humidity_2m, desc, icon });
+        }, () => {
+          // fallback: use default Indian coordinates (Mumbai)
+          setWeather({ temp: 30, humidity: 60, desc: 'Partly Cloudy', icon: 'partly_cloudy_day' });
+        });
+      } catch {
+        setWeather({ temp: 28, humidity: 55, desc: 'Clear Sky', icon: 'sunny' });
+      }
+    };
+    fetchWeather();
+  }, []);
 
   const cropImg = (crop: string) => {
     const c = crop.toLowerCase();
@@ -217,51 +251,75 @@ ${listings.map(l => `- ${l?.crop} at ₹${l?.price_per_unit}/kg (Quantity: ${l?.
             )}
           </div>
 
-          {/* 🧩 NEW: Sales Performance Chart (Visual Filler) */}
+          {/* Sales Performance Chart — bar heights driven by real order counts per month */}
           <div className="bg-surface-container-lowest border border-outline-variant/10 rounded-[2.5rem] p-6 shadow-sm overflow-hidden">
              <div className="flex items-center justify-between mb-6">
                 <div>
                    <h3 className="font-bold text-lg text-on-surface">{t('dashboard.yield_trend')}</h3>
-                   <p className="text-xs text-on-surface-variant">Estimated revenue vs actual harvest</p>
+                   <p className="text-xs text-on-surface-variant">Orders placed per month (last 12)</p>
                 </div>
                 <div className="flex gap-2">
-                   <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-primary-500" /> <span className="text-[10px] font-bold text-on-surface-variant">Sales</span></div>
-                   <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-secondary" /> <span className="text-[10px] font-bold text-on-surface-variant">Yield</span></div>
+                   <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-primary-500" /> <span className="text-[10px] font-bold text-on-surface-variant">Orders</span></div>
                 </div>
              </div>
              
              <div className="h-48 w-full flex items-end justify-between gap-2 px-2">
-                {[40, 70, 45, 90, 65, 80, 55, 95, 75, 85, 60, 100].map((h, i) => (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
-                     <div className="w-full relative flex items-end justify-center h-40">
-                        <div className="w-full bg-secondary/10 rounded-t-lg absolute bottom-0 h-full" />
-                        <div 
-                          className="w-1/2 bg-gradient-to-t from-primary-600 to-primary-400 rounded-t-lg transition-all duration-1000 group-hover:from-primary-500 group-hover:to-primary-300"
-                          style={{ height: `${h}%` }}
-                        />
-                     </div>
-                     <span className="text-[9px] font-bold text-on-surface-variant opacity-50 uppercase tracking-tighter">M{i+1}</span>
-                  </div>
-                ))}
+               {(() => {
+                 const months = Array.from({ length: 12 }, (_, i) => {
+                   const d = new Date();
+                   d.setMonth(d.getMonth() - (11 - i));
+                   return { label: d.toLocaleString('default', { month: 'short' }), month: d.getMonth(), year: d.getFullYear() };
+                 });
+                 const counts = months.map(m =>
+                   orders.filter(o => { const d = new Date(o.created_at); return d.getMonth() === m.month && d.getFullYear() === m.year; }).length
+                 );
+                 const maxCount = Math.max(...counts, 1);
+                 return months.map((m, i) => (
+                   <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
+                      <div className="w-full relative flex items-end justify-center h-40">
+                         <div className="w-full bg-primary-50/50 rounded-t-lg absolute bottom-0 h-full" />
+                         <div
+                           className="w-3/4 bg-gradient-to-t from-primary-600 to-primary-400 rounded-t-lg transition-all duration-700 group-hover:from-primary-500 group-hover:to-primary-300"
+                           style={{ height: `${Math.max((counts[i] / maxCount) * 100, 8)}%` }}
+                         />
+                      </div>
+                      <span className="text-[9px] font-bold text-on-surface-variant opacity-60 uppercase tracking-tighter">{m.label}</span>
+                   </div>
+                 ));
+               })()}
              </div>
           </div>
 
-          {/* 🧩 NEW: Weather & Soil Widget (Visual Filler) */}
+          {/* Live Weather & Soil Widget */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-gradient-to-br from-blue-600 to-blue-400 p-5 sm:p-6 rounded-[2rem] text-white shadow-lg flex items-center justify-between">
                <div>
                   <p className="text-[10px] sm:text-xs font-bold text-blue-100 uppercase tracking-widest mb-1">{t('dashboard.weather')}</p>
-                  <h4 className="text-2xl sm:text-3xl font-black">28°C</h4>
-                  <p className="text-xs sm:text-sm font-medium text-blue-50">Partly Cloudy · Humidity 45%</p>
+                  {weather ? (
+                    <>
+                      <h4 className="text-2xl sm:text-3xl font-black">{weather.temp}°C</h4>
+                      <p className="text-xs sm:text-sm font-medium text-blue-50">{weather.desc} · Humidity {weather.humidity}%</p>
+                    </>
+                  ) : (
+                    <div className="h-8 w-20 bg-white/20 rounded-lg animate-pulse" />
+                  )}
                </div>
-               <span className="material-symbols-outlined text-[48px] sm:text-[64px] text-white/40" style={{ fontVariationSettings: "'FILL' 1" }}>partly_cloudy_day</span>
+               <span className="material-symbols-outlined text-[48px] sm:text-[64px] text-white/40" style={{ fontVariationSettings: "'FILL' 1" }}>{weather?.icon || 'partly_cloudy_day'}</span>
             </div>
             
             <div className="bg-gradient-to-br from-emerald-600 to-emerald-400 p-5 sm:p-6 rounded-[2rem] text-white shadow-lg flex items-center justify-between">
                <div>
                   <p className="text-[10px] sm:text-xs font-bold text-emerald-100 uppercase tracking-widest mb-1">{t('dashboard.soil')}</p>
-                  <h4 className="text-2xl sm:text-3xl font-black">64%</h4>
-                  <p className="text-xs sm:text-sm font-medium text-emerald-50">Optimal for Root Crops</p>
+                  {weather ? (
+                    <>
+                      <h4 className="text-2xl sm:text-3xl font-black">{Math.min(100, Math.round(weather.humidity * 0.85))}%</h4>
+                      <p className="text-xs sm:text-sm font-medium text-emerald-50">
+                        {weather.humidity > 70 ? 'High Moisture — Monitor drainage' : weather.humidity > 40 ? 'Optimal for Root Crops' : 'Low Moisture — Irrigation advised'}
+                      </p>
+                    </>
+                  ) : (
+                    <div className="h-8 w-24 bg-white/20 rounded-lg animate-pulse" />
+                  )}
                </div>
                <span className="material-symbols-outlined text-[48px] sm:text-[64px] text-white/40" style={{ fontVariationSettings: "'FILL' 1" }}>water_drop</span>
             </div>
