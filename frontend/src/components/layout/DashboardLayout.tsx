@@ -76,13 +76,23 @@ export default function DashboardLayout() {
           <div className="hidden md:flex items-center gap-1 bg-surface-container-low p-1 rounded-xl border border-outline-variant/10">
             <Link
               to={isFarmer ? "/farmer/dashboard" : "/market/browse"}
-              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${location.pathname.includes("dashboard") || location.pathname.includes("browse") ? "bg-white shadow-sm text-primary-700" : "text-on-surface-variant hover:text-on-surface hover:bg-white/50"}`}
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
+                (isFarmer && location.pathname === "/farmer/dashboard") || 
+                (!isFarmer && location.pathname === "/market/browse")
+                  ? "bg-white shadow-sm text-primary-700" 
+                  : "text-on-surface-variant hover:text-on-surface hover:bg-white/50"
+              }`}
             >
               {t("nav.overview")}
             </Link>
             <Link
               to={isFarmer ? "/farmer/orders" : "/market/dashboard"}
-              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${location.pathname.includes("orders") ? "bg-white shadow-sm text-primary-700" : "text-on-surface-variant hover:text-on-surface hover:bg-white/50"}`}
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
+                (isFarmer && location.pathname.includes("/farmer/orders")) || 
+                (!isFarmer && location.pathname.includes("/market/dashboard"))
+                  ? "bg-white shadow-sm text-primary-700" 
+                  : "text-on-surface-variant hover:text-on-surface hover:bg-white/50"
+              }`}
             >
               {t("nav.activity")}
             </Link>
