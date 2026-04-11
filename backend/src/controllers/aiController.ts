@@ -36,10 +36,10 @@ export const evaluateBuyerRisk = async (req: Request, res: Response): Promise<vo
     const { buyerId } = req.body;
     // Mock risk assessment
     res.json({
-      buyerId,
-      riskLevel: 'LOW',
-      score: 85,
-      recommendation: 'Reliable buyer with 98% settlement rate.'
+      riskScore: 15,
+      isVerified: true,
+      flags: ['Verified Identity', 'Good Payment History', 'High Volume Trader'],
+      analysis: 'Reliable buyer with a 98% successful settlement rate on time.'
     });
   } catch (error) {
     res.status(500).json({ error: String(error) });
