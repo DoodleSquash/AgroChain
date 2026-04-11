@@ -113,17 +113,17 @@ ${listings.map(l => `- ${l?.crop} at ₹${l?.price_per_unit}/kg (Quantity: ${l?.
       {/* ── Header ── */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-5">
         <div>
-          <div className="flex items-center gap-2.5 mb-2">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-primary-600 to-primary-800 flex items-center justify-center shadow-lg">
-              <span className="material-symbols-outlined text-white text-[20px] sm:text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>eco</span>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-primary-600 uppercase tracking-widest leading-none mb-1">{t('nav.farmer_portal')}</p>
-              <h1 className="text-2xl sm:text-3xl font-extrabold font-headline tracking-tight text-on-surface leading-none">
-                {userName}
-              </h1>
-            </div>
+        <Link to="/farmer/profile/edit" className="flex items-center gap-2.5 mb-2 group cursor-pointer">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-primary-600 to-primary-800 flex items-center justify-center shadow-lg transition-transform group-hover:scale-110">
+            <span className="material-symbols-outlined text-white text-[20px] sm:text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>eco</span>
           </div>
+          <div>
+            <p className="text-[10px] font-bold text-primary-600 uppercase tracking-widest leading-none mb-1 group-hover:text-primary-700 transition-colors">{t('nav.farmer_portal')}</p>
+            <h1 className="text-2xl sm:text-3xl font-extrabold font-headline tracking-tight text-on-surface leading-none group-hover:text-primary-800 transition-colors">
+              {userName}
+            </h1>
+          </div>
+        </Link>
           <p className="text-on-surface-variant text-sm sm:text-base">
             {t('dashboard.welcome')} 👋 <span className="hidden xs:inline">— {t('dashboard.farmer_sub')}</span>
           </p>

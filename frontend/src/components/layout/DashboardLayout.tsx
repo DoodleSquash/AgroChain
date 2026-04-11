@@ -91,8 +91,11 @@ export default function DashboardLayout() {
 
         {/* Right Actions */}
         <div className="flex items-center gap-2 md:gap-5">
-          {/* Role Badge - Hidden on mobile, shown on md+ */}
-          <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-primary-200 bg-primary-50 text-primary-700">
+          {/* Role Badge - Links to Edit Profile */}
+          <Link
+            to={isFarmer ? "/farmer/profile/edit" : "/market/profile/edit"}
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-primary-200 bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors"
+          >
             <span
               className="material-symbols-outlined text-[16px]"
               style={{ fontVariationSettings: "'FILL' 1" }}
@@ -102,7 +105,7 @@ export default function DashboardLayout() {
             <span className="text-[11px] font-bold uppercase tracking-wider">
               {isFarmer ? t("nav.farmer_portal") : t("nav.buyer_portal")}
             </span>
-          </div>
+          </Link>
 
           <LanguageSwitcher />
 
@@ -128,15 +131,18 @@ export default function DashboardLayout() {
             </span>
           </Link>
 
-          <div className="flex items-center gap-2 cursor-pointer hover:bg-surface-container-low p-1 rounded-full transition-colors border border-transparent hover:border-outline-variant/20 group">
+          <Link
+            to={isFarmer ? "/farmer/profile/edit" : "/market/profile/edit"}
+            className="flex items-center gap-2 hover:bg-surface-container-low p-1 rounded-full transition-colors border border-transparent hover:border-outline-variant/20 group"
+          >
             <img
-              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=16A34A&color=fff&bold=true`}
+              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(isFarmer ? t("nav.farmer_portal") : t("nav.buyer_portal"))}&background=16A34A&color=fff&bold=true`}
               alt="Profile"
-              className="w-8 h-8 md:w-9 md:h-9 rounded-full shadow-sm border border-outline-variant/20"
+              className="w-8 h-8 md:w-9 md:h-9 rounded-full shadow-sm border border-outline-variant/20 transition-transform group-hover:scale-105"
             />
             <div className="hidden md:flex flex-col">
               <span className="text-sm font-bold text-on-surface leading-tight group-hover:text-primary-700 transition-colors">
-                {userName}
+                {isFarmer ? t("nav.farmer_portal") : t("nav.buyer_portal")}
               </span>
               <span className="text-[10px] text-primary-600 font-bold flex items-center gap-0.5">
                 <span
@@ -148,10 +154,10 @@ export default function DashboardLayout() {
                 {t("dashboard.verified")}
               </span>
             </div>
-            <span className="material-symbols-outlined text-on-surface-variant text-[18px] hidden md:block">
-              keyboard_arrow_down
+            <span className="material-symbols-outlined text-on-surface-variant text-[18px] hidden md:block group-hover:translate-x-0.5 transition-transform">
+              keyboard_arrow_right
             </span>
-          </div>
+          </Link>
         </div>
       </header>
 
