@@ -164,13 +164,8 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (data.response) {
         setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
         if (window.speechSynthesis) {
-          speak(data.response, () => {
-            if (data.askingQuestion) {
-              console.log('[VoiceContext] 🎤 Agent asked a question, auto-restarting mic...');
-              // Restart mic if agent is waiting for an answer
-              startListening();
-            }
-          });
+          // No auto-restart — mic only activates on explicit user click
+          speak(data.response);
         }
       }
 

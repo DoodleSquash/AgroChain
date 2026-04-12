@@ -34,7 +34,11 @@ export const sendHandoverQR = async (email: string, token: string) => {
     subject: 'AgroChain Warehouse Handover',
     text: `You have a new delivery arriving. Please click the link to confirm handover:\n ${frontendUrl}/warehouse/${token}`
   };
-  return transporter.sendMail(mailOptions);
+  try {
+    await transporter.sendMail(mailOptions);
+  } catch (err) {
+    console.warn('[Mailer] Handover QR email failed:', (err as Error).message);
+  }
 };
 
 export const sendTransportLink = async (email: string, token: string, jobId: string) => {
@@ -45,5 +49,9 @@ export const sendTransportLink = async (email: string, token: string, jobId: str
     subject: `AgroChain Transport Job Assignment: #${jobId.substring(0,8).toUpperCase()}`,
     text: `Hello Driver,\n\nYou have been assigned a new transport job on AgroChain.\nPlease click the link below to access your delivery portal, mark pickups, and finalize handovers:\n\n${frontendUrl}/delivery/${token}\n\nSafe travels!\n— AgroChain Logistics`
   };
-  return transporter.sendMail(mailOptions);
+  try {
+    await transporter.sendMail(mailOptions);
+  } catch (err) {
+    console.warn('[Mailer] Transport Link email failed:', (err as Error).message);
+  }
 };

@@ -22,8 +22,8 @@ export const useSpeechRecognition = () => {
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
+    recognition.continuous = false;
+    recognition.interimResults = false;
 
     recognition.onstart = () => {
       console.log('[Voice] 🎙️ Microphone started listening...');
@@ -38,15 +38,10 @@ export const useSpeechRecognition = () => {
       const t = currentTranscript.trim();
       if (!t) return;
 
-      console.log(`[Voice] 📝 Partial Transcript: "${t}"`);
+      console.log(`[Voice] 📝 Transcript: "${t}"`);
       setTranscript(t);
-
-      // Debounce loop: Wait 800ms of absolute silence before processing
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
-      debounceTimer.current = setTimeout(() => {
-        console.log('[Voice] ⏱️ 800ms silence detected. Stopping recognition.');
-        recognition.stop();
-      }, 900); // Wait 1.2s actually, users talking slow need a little more
+      // Stop after capturing final result
+      recognition.stop();
     };
 
     recognition.onerror = (event: any) => {

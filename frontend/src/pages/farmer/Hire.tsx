@@ -242,7 +242,8 @@ export default function FarmerHire() {
   const handleCreateJob = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await apiFetch<any>('/farmers/hiring', {
+      // apiFetch returns parsed JSON directly — treat response as the new job
+      const newJob = await apiFetch<HireJob>('/farmers/hiring', {
         method: 'POST',
         body: JSON.stringify({
           farmer_id: farmerId,
@@ -256,28 +257,26 @@ export default function FarmerHire() {
           description
         })
       });
-      
-      if (!response.ok) throw new Error(response.error);
 
       // Clear persistence
       const keys = ['hire_title', 'hire_location', 'hire_wage', 'hire_workers', 'hire_date', 'hire_desc'];
       keys.forEach(k => localStorage.removeItem(k));
 
-      setJobs([response.job, ...jobs]);
-      setSelectedJob(response.job);
+      setJobs(prev => [newJob, ...prev]);
+      setSelectedJob(newJob);
       setShowCreateForm(false);
-      
-      // reset form
+
+      // Reset form
       setTitle('');
       setLocation('');
       setWage('');
       setWorkersNeeded('');
-      setDate('');
+      setWorkDate('');
       setDescription('');
       setLat(undefined);
       setLng(undefined);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to create job');
+      console.error('Failed to create job:', err);
     }
   };
 
@@ -400,7 +399,7 @@ export default function FarmerHire() {
               <div className="space-y-2">
                 <label className="text-sm font-bold text-on-surface-variant">Date of Work <span className="text-red-500">*</span></label>
                 <div className="relative">
-                  <input type="date" required value={date} onChange={e => setDate(e.target.value)}
+                  <input type="date" required value={workDate} onChange={e => setWorkDate(e.target.value)}
                     className="w-full px-4 py-3 bg-white border border-outline-variant/30 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all text-on-surface" />
                 </div>
               </div>

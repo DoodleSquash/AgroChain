@@ -295,22 +295,25 @@ export default function Browse() {
               </div>
               
               {showCityMenu && (
-                <div className="absolute top-full left-0 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                  <div className="p-2 space-y-1">
-                    {INDIAN_CITIES
-                      .filter(c => c.toLowerCase().includes(location === 'All Locations' ? '' : location.toLowerCase()))
-                      .slice(0, 50)
-                      .map(city => (
-                        <button
-                          key={city}
-                          onClick={() => { setLocation(city); setShowCityMenu(false); }}
-                          className="w-full text-left px-3 py-2 rounded-xl text-sm font-medium hover:bg-blue-50 hover:text-blue-700 transition-colors"
-                        >
-                          {city}
-                        </button>
-                      ))}
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowCityMenu(false)} />
+                  <div className="absolute top-full left-0 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="p-2 space-y-1">
+                      {INDIAN_CITIES
+                        .filter(c => c.toLowerCase().includes(location === 'All Locations' ? '' : location.toLowerCase()))
+                        .slice(0, 50)
+                        .map(city => (
+                          <button
+                            key={city}
+                            onClick={() => { setLocation(city); setShowCityMenu(false); }}
+                            className="w-full text-left px-3 py-2 rounded-xl text-sm font-medium hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                          >
+                            {city}
+                          </button>
+                        ))}
+                    </div>
                   </div>
-                </div>
+                </>
               )}
             </div>
 
