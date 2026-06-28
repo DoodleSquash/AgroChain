@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { supabase, BUCKET } from '../utils/supabase';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 // POST /api/upload
 // Accepts multipart/form-data with field "file"
@@ -13,7 +13,7 @@ export const uploadImage = async (req: Request, res: Response): Promise<void> =>
     }
 
     const ext      = file.originalname.split('.').pop() || 'jpg';
-    const fileName = `${uuidv4()}.${ext}`;
+    const fileName = `${randomUUID()}.${ext}`;
     const folder   = (req.query.folder as string) || 'general';
     const path     = `${folder}/${fileName}`;
 

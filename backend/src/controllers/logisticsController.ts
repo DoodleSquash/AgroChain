@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../db';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import { sendHandoverQR } from '../utils/mailer';
 
 // 1. Get Job Details securely via Token
@@ -110,7 +110,7 @@ export const initiateHandover = async (req: Request, res: Response): Promise<voi
       return;
     }
 
-    const handover_token = uuidv4();
+    const handover_token = randomUUID();
     
     // Update job details with handover info
     await prisma.job.update({
