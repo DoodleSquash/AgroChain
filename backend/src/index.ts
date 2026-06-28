@@ -33,13 +33,28 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api/farmers', farmerRoutes);
+app.use('/farmers', farmerRoutes);
+
 app.use('/api/supermarket', supermarketRoutes);
+app.use('/supermarket', supermarketRoutes);
+
 app.use('/api/logistics', logisticsRoutes);
+app.use('/logistics', logisticsRoutes);
+
 app.use('/api/public', publicRoutes);
+app.use('/public', publicRoutes);
+
 app.use('/api/upload', uploadRoutes);
+app.use('/upload', uploadRoutes);
+
 app.use('/api/ai', aiRoutes);
+app.use('/ai', aiRoutes);
+
 app.use('/api/voice', voiceRoutes);
+app.use('/voice', voiceRoutes);
+
 app.use('/api/chat', chatRoutes);
+app.use('/chat', chatRoutes);
 
 app.get('/', (req: Request, res: Response) => {
   res.json({ message: 'AgroChain Backend API is running' });
