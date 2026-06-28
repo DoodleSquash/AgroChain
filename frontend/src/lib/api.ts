@@ -5,7 +5,7 @@ const isProd = import.meta.env.PROD
 
 // Use production endpoint if built for prod; otherwise fallback to local/Android IP logic
 export const API = isProd
-  ? '/api'
+  ? '/_/backend/api'
   : isAndroid 
     ? 'http://10.204.181.184:5000/api' 
     : 'http://localhost:5000/api'
