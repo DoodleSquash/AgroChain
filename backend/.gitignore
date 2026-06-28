@@ -16,6 +16,9 @@ build/
 generated/prisma/
 prisma/db
 
+# Scratch/debug scripts
+scratch/
+
 # OS
 .DS_Store
 Thumbs.db
