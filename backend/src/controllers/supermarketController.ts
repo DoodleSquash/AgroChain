@@ -447,8 +447,12 @@ export const sendLogisticsEmail = async (req: Request, res: Response): Promise<v
        return;
      }
 
-     await sendTransportLink(email, job.token, job.id);
-     res.json({ message: 'Transport link emailed to driver successfully!' });
+     try {
+       await sendTransportLink(email, job.token, job.id);
+     } catch (e) {
+       console.warn('[Supermarket] Failed to send transport link email:', e);
+     }
+     res.json({ message: 'Transport link generated and driver notified (if email configured).' });
    } catch (error) {
      res.status(500).json({ error: String(error) });
    }

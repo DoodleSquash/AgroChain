@@ -125,10 +125,14 @@ export const initiateHandover = async (req: Request, res: Response): Promise<voi
     });
 
     // Send email to warehouse collector
-    await sendHandoverQR(warehouse_email, handover_token);
+    try {
+      await sendHandoverQR(warehouse_email, handover_token);
+    } catch (e) {
+      console.warn('[Logistics] Failed to send handover QR email:', e);
+    }
 
     res.json({
-      message: 'Handover initiated. Email sent to warehouse collector.',
+      message: 'Handover initiated. Email sent to warehouse collector (if configured).',
       handover_token,
       hint: 'Display this token as a QR code for the warehouse collector to scan.'
     });

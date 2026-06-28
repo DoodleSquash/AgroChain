@@ -431,7 +431,7 @@ export default function Landing() {
               <div className="flex justify-center mb-6">
                 <div className="grid grid-cols-5 gap-1.5 w-32 p-3 bg-gray-50 rounded-xl border border-gray-100">
                   {Array.from({ length: 25 }).map((_, i) => (
-                    <div key={i} className={`w-4 h-4 rounded-sm ${Math.random() > 0.5 ? 'bg-gray-900' : 'bg-gray-200'}`} />
+                    <div key={i} className={`w-4 h-4 rounded-sm ${(i * 3 + 1) % 2 === 0 ? 'bg-gray-900' : 'bg-gray-200'}`} />
                   ))}
                 </div>
               </div>
