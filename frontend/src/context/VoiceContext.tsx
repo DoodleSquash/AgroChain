@@ -27,7 +27,17 @@ export interface VoiceContextType {
 export const VoiceContext = createContext<VoiceContextType | undefined>(undefined);
 
 export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isListening, transcript, setTranscript, startListening, stopListening, isSupported, speechError, clearError } = useSpeechRecognition();
+  const { 
+    isListening: isListeningHook, 
+    transcript, 
+    setTranscript, 
+    startListening: startListeningHook, 
+    stopListening: stopListeningHook, 
+    isSupported: isSupportedHook, 
+    speechError, 
+    clearError 
+  } = useSpeechRecognition();
+  
   const { i18n } = useTranslation();
   const navigate = useNavigate();
 
@@ -39,6 +49,14 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Conversational state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const detectedLangRef = useRef('en-IN');
+
+  // MediaRecorder Fallback State
+  const [isRecordingLocal, setIsRecordingLocal] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const useWhisperFallback = !isSupportedHook || speechError === 'network';
 
   const clearMessages = useCallback(() => {
     setMessages([]);
@@ -64,34 +82,27 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const voices = window.speechSynthesis.getVoices();
     if (voices.length === 0) return null;
 
-    // Filter to voices matching the language (e.g. en-IN or hi-IN)
-    // fallback to just language code if exact match fails
     const mainLang = bcp47Lang.split('-')[0].toLowerCase();
     const langVoices = voices.filter(v => 
       v.lang.toLowerCase() === bcp47Lang.toLowerCase() || 
       v.lang.toLowerCase().startsWith(mainLang)
     );
 
-    // Known female/Indian voice patterns
     const femalePatterns = ['female', 'woman', 'zira', 'aditi', 'swara', 'lekha', 'google हिन्दी'];
     
-    // 1. Try to find a exact lang match + female
     for (const v of langVoices) {
       const name = v.name.toLowerCase();
       if (femalePatterns.some(p => name.includes(p))) return v;
     }
     
-    // 2. Try to find any Indian female voice as fallback
     const indianVoices = voices.filter(v => v.lang.toLowerCase().includes('in'));
     for (const v of indianVoices) {
       const name = v.name.toLowerCase();
       if (femalePatterns.some(p => name.includes(p))) return v;
     }
 
-    // 3. Fallback to just language match
     if (langVoices.length > 0) return langVoices[0];
 
-    // 4. Default
     return voices[0] || null;
   };
 
@@ -100,7 +111,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (onEnd) onEnd();
       return;
     }
-    window.speechSynthesis.cancel(); // stop any previous speech
+    window.speechSynthesis.cancel();
     const utt = new SpeechSynthesisUtterance(text);
     
     const bestVoice = getBestFemaleVoice(detectedLangRef.current);
@@ -113,11 +124,10 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
     
     utt.rate = 1.0;
-    utt.pitch = 1.0; // Sometimes setting pitch slightly higher (1.1) sounds more feminine, but natural voices prefer 1.0
+    utt.pitch = 1.0;
     
     if (onEnd) {
       utt.onend = () => {
-        // Small delay before triggering the next action (like restarting mic)
         setTimeout(onEnd, 300);
       };
     }
@@ -131,7 +141,6 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     
     console.log(`[VoiceContext] 📝 Processing text: "${textToProcess}"`);
       
-    // Add user message to UI
     const newMessages = [...messages, { role: 'user' as const, content: textToProcess }];
     setMessages(newMessages);
 
@@ -146,7 +155,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           transcript: textToProcess,
           schema,
           language: i18n.language,
-          conversationHistory: messages // send past history
+          conversationHistory: messages
         })
       });
 
@@ -158,7 +167,6 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return;
       }
 
-      // Update language if detected
       if (data.intent?.detectedLanguage) {
         detectedLangRef.current = data.intent.detectedLanguage;
       }
@@ -166,7 +174,6 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (data.response) {
         setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
         if (window.speechSynthesis) {
-          // No auto-restart — mic only activates on explicit user click
           speak(data.response);
         }
       }
@@ -188,16 +195,111 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setIsProcessing(false);
       setTranscript('');
     }
-  }, [schema, i18n.language, messages, startListening, speak, navigate, setTranscript]);
+  }, [schema, i18n.language, messages, speak, navigate, setTranscript]);
+
+  const startLocalRecording = async () => {
+    try {
+      console.log('[VoiceContext] 🎙️ Initializing MediaRecorder for Whisper fallback...');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      
+      const options = MediaRecorder.isTypeSupported('audio/webm') ? { mimeType: 'audio/webm' } : undefined;
+      const mediaRecorder = new MediaRecorder(stream, options);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        console.log('[VoiceContext] 🛑 MediaRecorder stopped. Packaging audio...');
+        const mimeType = mediaRecorder.mimeType || 'audio/webm';
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+          streamRef.current = null;
+        }
+
+        if (audioBlob.size === 0) {
+          console.warn('[VoiceContext] Audio blob is empty.');
+          return;
+        }
+
+        setIsProcessing(true);
+        try {
+          const formData = new FormData();
+          formData.append('file', audioBlob, `audio.${mimeType.split('/')[1] || 'webm'}`);
+
+          console.log(`[VoiceContext] 🧠 Sending audio to Whisper: ${API}/voice/transcribe`);
+          const response = await fetch(`${API}/voice/transcribe`, {
+            method: 'POST',
+            body: formData
+          });
+
+          if (!response.ok) {
+            throw new Error(`Server returned status ${response.status}`);
+          }
+
+          const data = await response.json();
+          if (data.text && data.text.trim()) {
+            console.log(`[VoiceContext] 📝 Whisper Transcription: "${data.text}"`);
+            await processText(data.text);
+          } else {
+            console.warn('[VoiceContext] Whisper returned empty transcription.');
+            if (window.speechSynthesis) speak("Sorry, I could not hear any speech. Please try again.");
+          }
+        } catch (err: any) {
+          console.error('[VoiceContext] ❌ Transcription upload failed:', err.message);
+          if (window.speechSynthesis) speak("Sorry, I had trouble processing your voice audio.");
+        } finally {
+          setIsProcessing(false);
+        }
+      };
+
+      mediaRecorder.start(250);
+      setIsRecordingLocal(true);
+      console.log('[VoiceContext] 🔴 MediaRecorder started recording.');
+    } catch (err: any) {
+      console.error('[VoiceContext] ❌ Failed to start MediaRecorder:', err.message);
+      if (window.speechSynthesis) speak("Microphone access failed. Please enable microphone permissions.");
+    }
+  };
+
+  const stopLocalRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+      setIsRecordingLocal(false);
+    }
+  };
+
+  const startListening = useCallback(() => {
+    if (useWhisperFallback) {
+      startLocalRecording();
+    } else {
+      startListeningHook();
+    }
+  }, [useWhisperFallback, startListeningHook]);
+
+  const stopListening = useCallback(() => {
+    if (isRecordingLocal) {
+      stopLocalRecording();
+    } else {
+      stopListeningHook();
+    }
+  }, [isRecordingLocal, stopListeningHook]);
 
   useEffect(() => {
-    // Avoid processing the same transcript twice
-    if (!transcript || isListening || transcript === processedTranscriptRef.current) return;
-
+    if (!transcript || isListeningHook || transcript === processedTranscriptRef.current) return;
     processedTranscriptRef.current = transcript;
-    
     processText(transcript);
-  }, [transcript, isListening, processText]);
+  }, [transcript, isListeningHook, processText]);
+
+  const isListening = isListeningHook || isRecordingLocal;
+  const isSupported = isSupportedHook || !!(typeof window !== 'undefined' && window.navigator?.mediaDevices && typeof window.navigator.mediaDevices.getUserMedia === 'function' && typeof window.MediaRecorder !== 'undefined');
 
   return (
     <VoiceContext.Provider value={{ 

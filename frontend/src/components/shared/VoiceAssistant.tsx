@@ -146,7 +146,7 @@ export default function VoiceAssistant() {
                     <span className="material-symbols-outlined text-[18px] mt-0.5 flex-shrink-0">error</span>
                     <span>
                       {speechError === 'network'
-                        ? "Couldn't reach Google's speech servers. An ad-blocker may be blocking it, or there's a network issue."
+                        ? "Couldn't reach Google's speech servers. Click 'Retry mic' to automatically switch to our secure backup transcription server!"
                         : speechError === 'not-allowed'
                         ? 'Microphone access was denied. Allow microphone permission in your browser settings.'
                         : speechError === 'no-speech'
