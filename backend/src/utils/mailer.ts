@@ -1,15 +1,20 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+dotenv.config();
 
-// Resend's free tier lets you send FROM onboarding@resend.dev without a custom domain.
-// Once you add your own domain you can change this to a branded address.
-const FROM = 'AgroChain <onboarding@resend.dev>';
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
 
 export const sendOTP = async (email: string, otp: string) => {
   try {
-    await resend.emails.send({
-      from: FROM,
+    await transporter.sendMail({
+      from: `"AgroChain" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: 'Your AgroChain OTP Code',
       html: `
@@ -28,7 +33,7 @@ export const sendOTP = async (email: string, otp: string) => {
         </div>
       `
     });
-    console.log('[Mailer] OTP email sent successfully to', email);
+    console.log('[Mailer] OTP email sent to', email);
   } catch (err) {
     console.warn('[Mailer] OTP email failed:', (err as Error).message);
   }
@@ -37,8 +42,8 @@ export const sendOTP = async (email: string, otp: string) => {
 export const sendHandoverQR = async (email: string, token: string) => {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   try {
-    await resend.emails.send({
-      from: FROM,
+    await transporter.sendMail({
+      from: `"AgroChain Logistics" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: 'AgroChain Warehouse Handover',
       html: `
@@ -58,8 +63,8 @@ export const sendHandoverQR = async (email: string, token: string) => {
 export const sendTransportLink = async (email: string, token: string, jobId: string) => {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   try {
-    await resend.emails.send({
-      from: FROM,
+    await transporter.sendMail({
+      from: `"AgroChain Logistics Hub" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: `AgroChain Transport Job Assignment: #${jobId.substring(0, 8).toUpperCase()}`,
       html: `
@@ -67,7 +72,7 @@ export const sendTransportLink = async (email: string, token: string, jobId: str
           <h1 style="color:#16a34a;">🌿 AgroChain</h1>
           <p>Hello Driver,</p>
           <p>You have been assigned a new transport job on AgroChain.</p>
-          <p>Click the link below to access your delivery portal, mark pickups, and finalize handovers:</p>
+          <p>Click the link below to access your delivery portal:</p>
           <a href="${frontendUrl}/delivery/${token}" style="display:inline-block;background:#16a34a;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">Open Delivery Portal</a>
           <p style="margin-top:24px;color:#6b7280;font-size:14px;">Safe travels!<br/>— AgroChain Logistics</p>
         </div>
