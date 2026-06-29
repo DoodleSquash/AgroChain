@@ -1,119 +1,95 @@
-# AgroChain 🌾
+# 🌾 **AgroChain – Agricultural Supply Chain Platform**
 
-AgroChain is a robust, full-stack digital agricultural supply chain platform connecting farmers and buyers with intelligent AI-driven logistics, multilingual support, and escrow-based smart payments.
+[![Live Demo](https://img.shields.io/badge/Live_Demo-000000?style=flat&logo=vercel&logoColor=white)](https://agro-chain-inky.vercel.app)
+![React](https://img.shields.io/badge/React_19-20232A?style=flat&logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat&logo=nodedotjs&logoColor=white)
+![Express](https://img.shields.io/badge/Express-000000?style=flat&logo=express&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-ORM-121212?style=flat&logo=prisma&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-Database-3ECF8E?style=flat&logo=supabase&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat&logo=tailwindcss&logoColor=white)
 
----
-
-## 🚀 Setup & Local Development
-
-### 1. Prerequisites
-Ensure you have **Node.js (v18+)** and **npm** or **pnpm** installed.
-
-### 2. Backend Setup
-1. Navigate to the `backend` directory:
-   ```bash
-   cd backend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Configure environment variables in `.env`:
-   ```env
-   DATABASE_URL="postgresql://postgres.vkmiapkwpkmbfqaksyol:adityaagrochain@aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres"
-   SUPABASE_URL="https://vkmiapkwpkmbfqaksyol.supabase.co"
-   SUPABASE_SERVICE_KEY="your-supabase-service-key"
-   JWT_SECRET="agrochain-ultra-secure-key-2026"
-   FRONTEND_URL="http://localhost:5173"
-   
-   # Optional Email SMTP setup (fails gracefully if omitted)
-   EMAIL_USER="agro.chain.offical@gmail.com"
-   EMAIL_PASS="your-email-app-password"
-   
-   # AI Integration
-   GROQ_API_KEY="your-groq-api-key"
-   ```
-4. Push the schema to your Supabase instance:
-   ```bash
-   npx prisma db push
-   ```
-5. Run the development server:
-   ```bash
-   npm run dev
-   ```
-   *The backend server runs at `http://localhost:5000`.*
-
-### 3. Frontend Setup
-1. Navigate to the `frontend` directory:
-   ```bash
-   cd ../frontend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the Vite development server:
-   ```bash
-   npm run dev
-   ```
-   *The frontend runs at `http://localhost:5173`.*
+AgroChain is a robust full-stack supply chain platform connecting Indian farmers directly with supermarkets and buyers. It incorporates secure role-based workspaces, verified escrow payment systems, location-aware marketplace discovery, and an intelligent AI voice assistant designed to simplify operations in regional languages.
 
 ---
 
-## 🛠️ Testing & Verification
+## 🚀 **Features**
 
-### Static Verification
-To check compiler sanity and code quality before deployment:
-* **Backend compilation**: `npm run build` in `/backend` (verifies TypeScript compilation and generates Prisma clients).
-* **Frontend compilation & lint**: `npm run lint` and `npm run build` in `/frontend`.
+- 🎙️ **Multilingual Voice Assistant (AgroBot)** – Navigates pages, fills out product listings, and manages settings in local Indian languages (English, Hindi, Marathi, etc.) using the browser's native Web Speech API.
+- 📦 **Secure Escrow Payments** – Implements a trusted transaction workflow with balance tracking, ensuring funds are verified and safely locked before cargo dispatches.
+- 🚚 **Token-Secured Logistics** – Coordinates hub-to-hub tracking, warehouse drop-offs, and driver assignments using QR-style secure validation tokens.
+- 🔐 **OTP Registration System** – Delivers instant, secure sign-up verification codes directly to user emails via Gmail SMTP routing.
+- 🌍 **Bidirectional Location Filters** – Connects farmers and buyers via distance-based crop queries, filtering produce by category, farmer name, and logistics radius.
 
-### Database Connection Check
-Verify the active database connection using the utility script:
+---
+
+## 🤖 **Groq API & Llama-3 Integration**
+
+AgroChain leverages the `llama-3.3-70b-versatile` model via the Groq API to power **AgroBot**:
+- **Intent Parsing & Navigation:** Translates multilingual voice inputs into structured actions, auto-completing listings and triggering navigation routes (`GLOBAL_NAVIGATE`).
+- **Failover Key Rotation:** Automatically rotates across multiple configured Groq API keys to prevent rate limits (`429` errors) and guarantee uninterrupted uptime.
+
+---
+
+## 🛠️ **Tech Stack**
+
+| Layer | Technology | Purpose |
+|---|---|---|
+| **Frontend** | React 19, TypeScript, Vite | Component-driven, type-safe browser user interface |
+| **Styling** | Tailwind CSS | Utility-first styling with custom animation extensions |
+| **Backend** | Node.js, Express.js | REST APIs supporting dual-prefix production routing |
+| **Database** | PostgreSQL (Supabase) | Cloud database and secure file storage buckets |
+| **ORM** | Prisma ORM | Declarative schema design, type-safe queries, & database migrations |
+| **AI Engine** | Groq API (`llama-3.3-70b-versatile`) | Natural language intent mapping & local crop pricing advisory |
+| **Mailing** | Nodemailer | Transactional OTP email routing for security |
+
+---
+
+## 🌍 **Deployment & Video Explanation**
+
+The application is deployed and accessible online:
+
+- **User Platform:** [View Live Deployment](https://agro-chain-inky.vercel.app)
+- **📺 Project Walkthrough & Demo Video:** [Google Drive Video Link](https://drive.google.com/file/d/your_google_drive_file_id/view?usp=sharing) *(Replace with your actual Google Drive video share link)*
+
+---
+
+## 📌 **Installation & Setup**
+
 ```bash
-cd backend
-node check_db.js
+# 1. Clone the repository
+git clone https://github.com/DoodleSquash/AgroChain.git
+cd AgroChain
+
+# 2. Install frontend and backend dependencies in one unit
+cd backend && npm install && cd ../frontend && npm install
 ```
 
-### API Testing
-We provide 4 Postman collections under `/backend` for running API route tests:
-* `farmerApp.json` (Farmer endpoints)
-* `supermarket.json` (Buyer/Market endpoints)
-* `logistics.json` (Transporter & warehouse actions)
-* `public.json` (Landing and common trace routes)
+### **3. Set Up Environment Variables**
+Create a `.env` file in the `backend` directory:
+```env
+DATABASE_URL="postgresql://your_db_username:your_db_password@your_db_host:your_db_port/your_db_name"
+EMAIL_USER="your_gmail_address@gmail.com"
+EMAIL_PASS="your_gmail_app_password"
+JWT_SECRET="your_jwt_secret_signing_key"
+SUPABASE_URL="https://your_supabase_project_ref.supabase.co"
+SUPABASE_SERVICE_KEY="your_supabase_service_role_key"
+FRONTEND_URL="http://localhost:5173"
+
+GROQ_API_KEY="your_groq_api_key_1"
+GROQ_API_KEY2="your_groq_api_key_2"
+GROQ_API_KEY3="your_groq_api_key_3"
+GROQ_API_KEY4="your_groq_api_key_4"
+```
+
+### **4. Start Local Development**
+Run the following commands in separate terminals to start the development servers:
+* **Backend API Server:** `cd backend && npm run dev`
+* **Frontend Web App:** `cd frontend && npm run dev`
 
 ---
 
-## 🌐 Production Deployment Guide (Vercel)
-
-Both the frontend and backend are preconfigured with `vercel.json` configurations to support serverless deployment on Vercel.
-
-### Project 1: Frontend Deployment
-1. Import the project on the Vercel Dashboard.
-2. Set the **Root Directory** to `frontend`.
-3. Select **Vite** as the framework preset.
-4. Add the environment variable:
-   * `VITE_API_URL` = `https://your-backend-vercel-url.vercel.app/api`
-5. Click **Deploy**. Vercel will handle the build outputs and apply the route rewrites defined in `vercel.json` for React Router.
-
-### Project 2: Backend Deployment
-1. Import the project on the Vercel Dashboard.
-2. Set the **Root Directory** to `backend`.
-3. Select **Other** as the framework preset.
-4. Add the required environment variables:
-   * `DATABASE_URL`
-   * `SUPABASE_URL`
-   * `SUPABASE_SERVICE_KEY`
-   * `JWT_SECRET`
-5. Click **Deploy**. Vercel will build your TypeScript files and serve the backend serverless.
-
-> [!WARNING]
-> **Vercel Serverless & Socket.io WebSockets**:
-> Vercel Serverless Functions do not support long-lived TCP connection streams. Therefore, real-time messaging (Socket.io) will not maintain active connections.
-> * **Recommendation**: If real-time chat is crucial, deploy the **backend** to a persistent hosting platform such as **Render.com**, **Railway.app**, or a VPS, while keeping the **frontend** on Vercel.
-
----
-
-## 🗺️ Pages & Routes
+## 🗺️ **Pages & Routes**
 
 AgroChain features a dual-dashboard architecture secured by Role-Based Access Control (RBAC).
 
@@ -131,5 +107,17 @@ AgroChain features a dual-dashboard architecture secured by Role-Based Access Co
 | `/market/browse` | `Marketplace` | Live produce shopping with bidirectional location-based filtering |
 | `/market/dashboard` | `My Orders` | Track pending purchases and order history |
 | `/market/logistics` | `Logistics Control` | Orchestrate supply chains, assign transporters, and issue QR tokens |
-| `/market/warehouses` | `Warehouses` | Manage storage infrastructure and authorize hub staff |
+| `/market/warehouses` | `Warehouses` | Manage physical storage infrastructure and authorize hub staff |
 | `/market/transporters` | `Transporters` | Register transport logistics, drivers, and vehicles |
+
+---
+
+## 🛠️ **Contributing**
+
+Contributions are welcome! Feel free to fork the repository, create a new branch, and submit a pull request.
+
+---
+
+### 💡 **Feedback & Support**
+
+For any issues or suggestions, feel free to open an issue on GitHub or contact me at [adityalotankar06@gmail.com](mailto:adityalotankar06@gmail.com).
