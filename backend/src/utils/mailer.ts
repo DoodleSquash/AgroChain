@@ -3,17 +3,27 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+let transporter: any = null;
+
+function getTransporter() {
+  if (!transporter) {
+    const user = process.env.EMAIL_USER;
+    const pass = process.env.EMAIL_PASS;
+    if (!user || !pass) {
+      throw new Error(`Missing mailer configuration. EMAIL_USER: ${user ? 'present' : 'missing'}, EMAIL_PASS: ${pass ? 'present' : 'missing'}`);
+    }
+    transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user, pass }
+    });
   }
-});
+  return transporter;
+}
 
 export const sendOTP = async (email: string, otp: string) => {
   try {
-    await transporter.sendMail({
+    const client = getTransporter();
+    await client.sendMail({
       from: `"AgroChain" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: 'Your AgroChain OTP Code',
@@ -44,7 +54,8 @@ export const sendOTP = async (email: string, otp: string) => {
 export const sendHandoverQR = async (email: string, token: string) => {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   try {
-    await transporter.sendMail({
+    const client = getTransporter();
+    await client.sendMail({
       from: `"AgroChain Logistics" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: 'AgroChain Warehouse Handover',
@@ -65,7 +76,8 @@ export const sendHandoverQR = async (email: string, token: string) => {
 export const sendTransportLink = async (email: string, token: string, jobId: string) => {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   try {
-    await transporter.sendMail({
+    const client = getTransporter();
+    await client.sendMail({
       from: `"AgroChain Logistics Hub" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: `AgroChain Transport Job Assignment: #${jobId.substring(0, 8).toUpperCase()}`,
