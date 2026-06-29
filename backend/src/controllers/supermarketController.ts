@@ -33,11 +33,15 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       data: { otp_code: otp, otp_expiry: expiry }
     });
 
+    let mailError = null;
     if (email) {
-      await sendOTP(email, otp);
+      const mailResult = await sendOTP(email, otp);
+      if (!mailResult.success) {
+        mailError = mailResult.error;
+      }
     }
 
-    res.status(201).json({ message: 'Registration successful. OTP sent.', user_id: user.id, debug_otp: otp });
+    res.status(201).json({ message: 'Registration successful. OTP sent.', user_id: user.id, debug_otp: otp, debug_mail_error: mailError });
   } catch (error) {
     res.status(500).json({ error: String(error) });
   }

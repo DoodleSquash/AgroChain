@@ -32,12 +32,13 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       data: { otp_code: otp, otp_expiry: expiry }
     });
 
-    await sendOTP(email, otp);
+    const mailResult = await sendOTP(email, otp);
 
     res.status(201).json({ 
       message: 'Registration successful. OTP sent for verification.', 
       user_id: user.id,
-      debug_otp: otp 
+      debug_otp: otp,
+      debug_mail_error: mailResult.success ? null : mailResult.error
     });
   } catch (error) {
     res.status(500).json({ error: String(error) });

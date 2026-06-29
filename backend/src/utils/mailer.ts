@@ -34,8 +34,10 @@ export const sendOTP = async (email: string, otp: string) => {
       `
     });
     console.log('[Mailer] OTP email sent to', email);
+    return { success: true };
   } catch (err) {
     console.warn('[Mailer] OTP email failed:', (err as Error).message);
+    return { success: false, error: (err as Error).message };
   }
 };
 
