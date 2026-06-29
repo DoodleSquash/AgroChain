@@ -49,8 +49,8 @@ AgroChain leverages the `llama-3.3-70b-versatile` model via the Groq API to powe
 
 The application is deployed and accessible online:
 
-- **User Platform:** [View Live Deployment](https://agro-chain-inky.vercel.app)
-- **📺 Project Walkthrough & Demo Video:** [Google Drive Video Link](https://drive.google.com/file/d/your_google_drive_file_id/view?usp=sharing) *(Replace with your actual Google Drive video share link)*
+- **User Platform:** [View Live Deployment](https://agro-chain-aditya.vercel.app)
+- **📺 Project Walkthrough & Demo Video:** [Google Drive Video Link](https://drive.google.com/file/d/1MqRs9q7aTSOiy3kYc_TdShJrYiid_5rk/view?usp=sharing) 
 
 ---
 
