@@ -18,6 +18,7 @@ export interface VoiceContextType {
   isProcessing: boolean;
   isSupported: boolean;
   speechError: string | null;
+  clearError: () => void;
   messages: ChatMessage[];
   clearMessages: () => void;
   processText: (text: string) => Promise<void>;
@@ -26,7 +27,7 @@ export interface VoiceContextType {
 export const VoiceContext = createContext<VoiceContextType | undefined>(undefined);
 
 export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isListening, transcript, setTranscript, startListening, stopListening, isSupported, speechError } = useSpeechRecognition();
+  const { isListening, transcript, setTranscript, startListening, stopListening, isSupported, speechError, clearError } = useSpeechRecognition();
   const { i18n } = useTranslation();
   const navigate = useNavigate();
 
@@ -202,7 +203,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     <VoiceContext.Provider value={{ 
       setSchema, setOnIntentCallback, 
       isListening, startListening, stopListening, isProcessing, isSupported,
-      speechError,
+      speechError, clearError,
       messages, clearMessages, processText
     }}>
       {children}

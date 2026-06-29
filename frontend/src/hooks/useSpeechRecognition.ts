@@ -8,11 +8,11 @@ export const useSpeechRecognition = () => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [speechError, setSpeechError] = useState<SpeechError>(null);
+  // Hard-lock: after a blocking error (network/not-allowed) we refuse all
+  // automatic or accidental restarts until the user explicitly clears the lock.
+  const errorLockRef = useRef(false);
   const recognitionRef = useRef<any>(null);
   const isListeningRef = useRef(false);
-  const debounceTimer = useRef<any>(null);
-  // Cooldown: prevent starting again within 1s of a network error to avoid rapid loop
-  const lastErrorTimeRef = useRef<number>(0);
 
   useEffect(() => {
     const hasSpeech = ('webkitSpeechRecognition' in window) || ('SpeechRecognition' in window);
@@ -24,8 +24,8 @@ export const useSpeechRecognition = () => {
       return;
     }
 
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognitionAPI();
     recognition.continuous = false;
     recognition.interimResults = false;
 
@@ -39,35 +39,28 @@ export const useSpeechRecognition = () => {
       for (let i = 0; i < event.results.length; i++) {
         currentTranscript += event.results[i][0].transcript;
       }
-      
       const t = currentTranscript.trim();
       if (!t) return;
-
       console.log(`[Voice] 📝 Transcript: "${t}"`);
       setTranscript(t);
-      // Stop after capturing final result
       recognition.stop();
     };
 
     recognition.onerror = (event: any) => {
       console.error('[Voice] ❌ Speech recognition error:', event.error);
-      
-      // Record when the error happened to enforce cooldown
-      lastErrorTimeRef.current = Date.now();
 
       if (event.error === 'not-allowed') {
         setSpeechError('not-allowed');
-        console.error('[Voice] Microphone permission was DENIED.');
+        errorLockRef.current = true; // hard lock – needs explicit retry
+        console.error('[Voice] Microphone permission denied. Hard-locking mic.');
       } else if (event.error === 'network') {
         setSpeechError('network');
-        console.error('[Voice] Network error - Google Speech API unreachable.');
+        errorLockRef.current = true; // hard lock – needs explicit retry
+        console.error('[Voice] Network error. Hard-locking mic until user retries.');
       } else if (event.error === 'no-speech') {
         setSpeechError('no-speech');
-        console.warn('[Voice] No speech detected.');
+        // no-speech is soft — user can try again immediately
       } else if (event.error === 'aborted') {
-        // Aborted is a normal user-stop, not a real error
-        setSpeechError(null);
-      } else {
         setSpeechError(null);
       }
 
@@ -77,10 +70,9 @@ export const useSpeechRecognition = () => {
 
     recognition.onend = () => {
       console.log('[Voice] 🔴 Recognition ended.');
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
       isListeningRef.current = false;
       setIsListening(false);
-      // NOTE: no auto-restart here — mic only activates on explicit user click
+      // ⚠️ NO auto-restart here under any circumstances.
     };
 
     recognitionRef.current = recognition;
@@ -92,15 +84,13 @@ export const useSpeechRecognition = () => {
       console.error('[Voice] ❌ Cannot start: SpeechRecognition not initialized.');
       return;
     }
-    if (isListeningRef.current) {
-      console.warn('[Voice] Already listening, skipping start.');
+    // Refuse start while hard-locked (network / not-allowed error pending)
+    if (errorLockRef.current) {
+      console.warn('[Voice] 🔒 Hard-locked after error. Call clearError() first.');
       return;
     }
-
-    // Enforce 1.5s cooldown after a network error to prevent rapid loop
-    const msSinceLastError = Date.now() - lastErrorTimeRef.current;
-    if (msSinceLastError < 1500) {
-      console.warn('[Voice] Cooldown active after error, ignoring start.');
+    if (isListeningRef.current) {
+      console.warn('[Voice] Already listening, skipping start.');
       return;
     }
 
@@ -121,7 +111,7 @@ export const useSpeechRecognition = () => {
     };
 
     const currentLang = i18n.language || 'en';
-    const mappedLang = langMap[currentLang] || 'en-US';
+    const mappedLang = langMap[currentLang] || 'en-IN';
     recognitionRef.current.lang = mappedLang;
 
     console.log(`[Voice] 🟢 Starting listening... (lang: ${mappedLang})`);
@@ -132,7 +122,6 @@ export const useSpeechRecognition = () => {
       recognitionRef.current.start();
     } catch (e) {
       console.error('[Voice] ❌ Error calling recognition.start():', e);
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
       isListeningRef.current = false;
       setIsListening(false);
     }
@@ -141,12 +130,17 @@ export const useSpeechRecognition = () => {
   const stopListening = useCallback(() => {
     if (recognitionRef.current && isListeningRef.current) {
       console.log('[Voice] 🛑 Manually stopping recognition...');
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
       recognitionRef.current.stop();
     }
   }, []);
 
+  // User explicitly wants to retry after an error — release the lock.
+  const clearError = useCallback(() => {
+    errorLockRef.current = false;
+    setSpeechError(null);
+  }, []);
+
   const isSupported = ('webkitSpeechRecognition' in window) || ('SpeechRecognition' in window);
 
-  return { isListening, transcript, setTranscript, startListening, stopListening, isSupported, speechError };
+  return { isListening, transcript, setTranscript, startListening, stopListening, isSupported, speechError, clearError };
 };

@@ -52,9 +52,16 @@ export default function VoiceAssistant() {
 
   if (!voice || !voice.isSupported) return null;
 
-  const { isListening, isProcessing, startListening, stopListening, messages, clearMessages, speechError } = voice;
+  const { isListening, isProcessing, startListening, stopListening, messages, clearMessages, speechError, clearError } = voice;
+
+  const hasBlockingError = speechError === 'network' || speechError === 'not-allowed';
 
   const toggleMic = () => {
+    if (hasBlockingError) {
+      // Must explicitly clear the error lock before retrying
+      clearError();
+      return;
+    }
     if (isListening) stopListening();
     else startListening();
   };
@@ -134,17 +141,30 @@ export default function VoiceAssistant() {
             {/* Speech Error Banner */}
             {speechError && !isListening && !isProcessing && (
               <div className="flex justify-start">
-                <div className="max-w-[90%] px-4 py-2.5 rounded-2xl text-sm bg-red-50 text-red-700 border border-red-200 rounded-tl-sm shadow-sm flex items-start gap-2">
-                  <span className="material-symbols-outlined text-[18px] mt-0.5 flex-shrink-0">error</span>
-                  <span>
-                    {speechError === 'network'
-                      ? 'Microphone couldn\'t connect to Google Speech servers. This can happen if an ad-blocker is active or there\'s a network issue. Please try again or type your message below.'
-                      : speechError === 'not-allowed'
-                      ? 'Microphone access was denied. Please allow microphone permission in your browser settings and try again.'
-                      : speechError === 'no-speech'
-                      ? 'No speech was detected. Please speak clearly and try again.'
-                      : 'Speech recognition failed. Please try again or type below.'}
-                  </span>
+                <div className="max-w-[90%] px-4 py-2.5 rounded-2xl text-sm bg-red-50 text-red-700 border border-red-200 rounded-tl-sm shadow-sm">
+                  <div className="flex items-start gap-2 mb-2">
+                    <span className="material-symbols-outlined text-[18px] mt-0.5 flex-shrink-0">error</span>
+                    <span>
+                      {speechError === 'network'
+                        ? "Couldn't reach Google's speech servers. An ad-blocker may be blocking it, or there's a network issue."
+                        : speechError === 'not-allowed'
+                        ? 'Microphone access was denied. Allow microphone permission in your browser settings.'
+                        : speechError === 'no-speech'
+                        ? 'No speech detected. Please speak clearly.'
+                        : 'Speech recognition failed.'}
+                    </span>
+                  </div>
+                  {hasBlockingError && (
+                    <div className="flex gap-2 mt-1">
+                      <button
+                        onClick={() => { clearError(); startListening(); }}
+                        className="text-xs font-semibold px-3 py-1 rounded-full bg-red-600 text-white hover:bg-red-700 transition-colors"
+                      >
+                        Retry mic
+                      </button>
+                      <span className="text-xs text-red-500 self-center">or type below ↓</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -192,19 +212,21 @@ export default function VoiceAssistant() {
         className={`
           fixed bottom-8 right-6 z-[9999] w-16 h-16 rounded-full flex items-center justify-center
           shadow-2xl transition-all duration-300 
-          ${isListening
+          ${hasBlockingError
+            ? 'bg-red-500 shadow-red-500/40'
+            : isListening
             ? 'bg-red-500 shadow-red-500/40 scale-110 animate-pulse'
             : isProcessing
               ? 'bg-amber-500 shadow-amber-500/30 cursor-wait'
               : 'bg-gradient-to-br from-primary-500 to-primary-700 shadow-primary-500/30 hover:scale-110 hover:shadow-xl active:scale-95'}
         `}
-        title={isListening ? 'Tap to stop' : isProcessing ? 'Processing...' : 'Tap to speak'}
+        title={hasBlockingError ? 'Tap to retry' : isListening ? 'Tap to stop' : isProcessing ? 'Processing...' : 'Tap to speak'}
       >
         {isProcessing ? (
           <div className="w-6 h-6 border-3 border-white/40 border-t-white rounded-full animate-spin" />
         ) : (
           <span className="material-symbols-outlined text-white text-[28px]">
-            {isListening ? 'stop_circle' : 'mic'}
+            {hasBlockingError ? 'mic_off' : isListening ? 'stop_circle' : 'mic'}
           </span>
         )}
       </button>
