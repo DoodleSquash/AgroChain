@@ -5,14 +5,9 @@ export const useSpeechRecognition = () => {
   const { i18n } = useTranslation();
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
-  const [speechError, setSpeechError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
   const isListeningRef = useRef(false);
   const debounceTimer = useRef<any>(null);
-
-  const clearError = useCallback(() => {
-    setSpeechError(null);
-  }, []);
 
   useEffect(() => {
     const hasSpeech = ('webkitSpeechRecognition' in window) || ('SpeechRecognition' in window);
@@ -32,7 +27,6 @@ export const useSpeechRecognition = () => {
 
     recognition.onstart = () => {
       console.log('[Voice] 🎙️ Microphone started listening...');
-      setSpeechError(null);
     };
 
     recognition.onresult = (event: any) => {
@@ -53,16 +47,11 @@ export const useSpeechRecognition = () => {
     recognition.onerror = (event: any) => {
       console.error('[Voice] ❌ Speech recognition error:', event.error);
       if (event.error === 'not-allowed') {
-        setSpeechError('not-allowed');
         console.error('[Voice] Microphone permission was DENIED. Please allow microphone access in browser/app settings.');
       } else if (event.error === 'network') {
-        setSpeechError('network');
         console.error('[Voice] Network error - Google Speech API requires internet access.');
       } else if (event.error === 'no-speech') {
-        setSpeechError('no-speech');
         console.warn('[Voice] No speech detected. Try speaking louder or closer to the mic.');
-      } else {
-        setSpeechError(event.error);
       }
       isListeningRef.current = false;
       setIsListening(false);
@@ -89,7 +78,6 @@ export const useSpeechRecognition = () => {
       return;
     }
 
-    setSpeechError(null);
     setTranscript('');
 
     const langMap: Record<string, string> = {
@@ -133,5 +121,5 @@ export const useSpeechRecognition = () => {
 
   const isSupported = ('webkitSpeechRecognition' in window) || ('SpeechRecognition' in window);
 
-  return { isListening, transcript, setTranscript, startListening, stopListening, isSupported, speechError, clearError };
+  return { isListening, transcript, setTranscript, startListening, stopListening, isSupported };
 };
