@@ -52,7 +52,7 @@ export default function VoiceAssistant() {
 
   if (!voice || !voice.isSupported) return null;
 
-  const { isListening, isProcessing, startListening, stopListening, messages, clearMessages } = voice;
+  const { isListening, isProcessing, startListening, stopListening, messages, clearMessages, speechError } = voice;
 
   const toggleMic = () => {
     if (isListening) stopListening();
@@ -128,6 +128,23 @@ export default function VoiceAssistant() {
                       <span className="text-xs font-bold text-on-surface-variant">Thinking...</span>
                     </>
                   )}
+                </div>
+              </div>
+            )}
+            {/* Speech Error Banner */}
+            {speechError && !isListening && !isProcessing && (
+              <div className="flex justify-start">
+                <div className="max-w-[90%] px-4 py-2.5 rounded-2xl text-sm bg-red-50 text-red-700 border border-red-200 rounded-tl-sm shadow-sm flex items-start gap-2">
+                  <span className="material-symbols-outlined text-[18px] mt-0.5 flex-shrink-0">error</span>
+                  <span>
+                    {speechError === 'network'
+                      ? 'Microphone couldn\'t connect to Google Speech servers. This can happen if an ad-blocker is active or there\'s a network issue. Please try again or type your message below.'
+                      : speechError === 'not-allowed'
+                      ? 'Microphone access was denied. Please allow microphone permission in your browser settings and try again.'
+                      : speechError === 'no-speech'
+                      ? 'No speech was detected. Please speak clearly and try again.'
+                      : 'Speech recognition failed. Please try again or type below.'}
+                  </span>
                 </div>
               </div>
             )}

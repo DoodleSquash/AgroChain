@@ -1,13 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
+export type SpeechError = 'network' | 'not-allowed' | 'no-speech' | 'aborted' | null;
+
 export const useSpeechRecognition = () => {
   const { i18n } = useTranslation();
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [speechError, setSpeechError] = useState<SpeechError>(null);
   const recognitionRef = useRef<any>(null);
   const isListeningRef = useRef(false);
   const debounceTimer = useRef<any>(null);
+  // Cooldown: prevent starting again within 1s of a network error to avoid rapid loop
+  const lastErrorTimeRef = useRef<number>(0);
 
   useEffect(() => {
     const hasSpeech = ('webkitSpeechRecognition' in window) || ('SpeechRecognition' in window);
@@ -16,7 +21,6 @@ export const useSpeechRecognition = () => {
 
     if (!hasSpeech) {
       console.error('[Voice] ❌ Speech recognition NOT supported in this browser/context.');
-      console.error('[Voice] NOTE: Web Speech API requires HTTPS or localhost. If testing on a physical device over HTTP, it will not work.');
       return;
     }
 
@@ -27,6 +31,7 @@ export const useSpeechRecognition = () => {
 
     recognition.onstart = () => {
       console.log('[Voice] 🎙️ Microphone started listening...');
+      setSpeechError(null);
     };
 
     recognition.onresult = (event: any) => {
@@ -46,13 +51,26 @@ export const useSpeechRecognition = () => {
 
     recognition.onerror = (event: any) => {
       console.error('[Voice] ❌ Speech recognition error:', event.error);
+      
+      // Record when the error happened to enforce cooldown
+      lastErrorTimeRef.current = Date.now();
+
       if (event.error === 'not-allowed') {
-        console.error('[Voice] Microphone permission was DENIED. Please allow microphone access in browser/app settings.');
+        setSpeechError('not-allowed');
+        console.error('[Voice] Microphone permission was DENIED.');
       } else if (event.error === 'network') {
-        console.error('[Voice] Network error - Google Speech API requires internet access.');
+        setSpeechError('network');
+        console.error('[Voice] Network error - Google Speech API unreachable.');
       } else if (event.error === 'no-speech') {
-        console.warn('[Voice] No speech detected. Try speaking louder or closer to the mic.');
+        setSpeechError('no-speech');
+        console.warn('[Voice] No speech detected.');
+      } else if (event.error === 'aborted') {
+        // Aborted is a normal user-stop, not a real error
+        setSpeechError(null);
+      } else {
+        setSpeechError(null);
       }
+
       isListeningRef.current = false;
       setIsListening(false);
     };
@@ -62,6 +80,7 @@ export const useSpeechRecognition = () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
       isListeningRef.current = false;
       setIsListening(false);
+      // NOTE: no auto-restart here — mic only activates on explicit user click
     };
 
     recognitionRef.current = recognition;
@@ -78,6 +97,14 @@ export const useSpeechRecognition = () => {
       return;
     }
 
+    // Enforce 1.5s cooldown after a network error to prevent rapid loop
+    const msSinceLastError = Date.now() - lastErrorTimeRef.current;
+    if (msSinceLastError < 1500) {
+      console.warn('[Voice] Cooldown active after error, ignoring start.');
+      return;
+    }
+
+    setSpeechError(null);
     setTranscript('');
 
     const langMap: Record<string, string> = {
@@ -121,5 +148,5 @@ export const useSpeechRecognition = () => {
 
   const isSupported = ('webkitSpeechRecognition' in window) || ('SpeechRecognition' in window);
 
-  return { isListening, transcript, setTranscript, startListening, stopListening, isSupported };
+  return { isListening, transcript, setTranscript, startListening, stopListening, isSupported, speechError };
 };
