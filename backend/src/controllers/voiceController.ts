@@ -160,3 +160,66 @@ export const handleVoiceIntent = async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Internal Server Error', message: error.message });
   }
 };
+
+export const handleVoiceTranscribe = async (req: Request, res: Response) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ error: 'Audio file is required' });
+    }
+
+    console.log('[AgroBot] 📥 Transcribing audio file:', file.originalname, 'size:', file.size);
+
+    const groqKeys = [
+      process.env.GROQ_API_KEY,
+      process.env.GROQ_API_KEY2,
+      process.env.GROQ_API_KEY3,
+      process.env.GROQ_API_KEY4,
+    ].filter(Boolean) as string[];
+
+    if (groqKeys.length === 0) {
+      return res.status(500).json({ error: 'No Groq API keys configured' });
+    }
+
+    const formData = new FormData();
+    const blob = new Blob([new Uint8Array(file.buffer)], { type: file.mimetype });
+    formData.append('file', blob, file.originalname || 'audio.webm');
+    formData.append('model', 'whisper-large-v3');
+
+    let response, data, lastErr;
+
+    for (const [index, key] of groqKeys.entries()) {
+      console.log(`[AgroBot] 🎙️ Sending audio to Groq Whisper ${index + 1}/${groqKeys.length}...`);
+      try {
+        response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${key}`
+          },
+          body: formData
+        });
+
+        if (response.ok) {
+          data = await response.json() as any;
+          break;
+        }
+
+        lastErr = await response.text();
+        console.error(`[AgroBot] ⚠️ Whisper Key ${index + 1} failed:`, lastErr.slice(0, 150));
+      } catch (e: any) {
+        lastErr = e.message;
+        console.error(`[AgroBot] ⚠️ Whisper Key ${index + 1} exception:`, e.message);
+      }
+    }
+
+    if (!data) {
+      return res.status(500).json({ error: 'Failed to transcribe audio across all Groq keys', details: lastErr });
+    }
+
+    console.log('[AgroBot] 📝 Transcribed text:', data.text);
+    return res.json({ text: data.text });
+  } catch (error: any) {
+    console.error('[AgroBot] ❌ Transcription error:', error.message);
+    return res.status(500).json({ error: 'Internal Server Error', message: error.message });
+  }
+};
